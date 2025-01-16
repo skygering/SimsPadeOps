@@ -1,0 +1,25 @@
+#!/bin/bash
+#SBATCH -J {{ job_name }}              # Job name
+#SBATCH -o {{ job_name }}.o%j          # Name of stdout output file
+#SBATCH -e {{ job_name }}.e%j          # Name of stderr error file
+#SBATCH -p skx                       # Queue (partition) name
+#SBATCH -N {{ n_nodes }}             # Total # of nodes
+#SBATCH --ntasks-per-node 48         # Total # of cores
+#SBATCH -t {{ n_hrs }}:00:00         # Run time (hh:mm:ss)
+#SBATCH --mail-user=sgering@mit.edu  # Email ID  
+#SBATCH --mail-type=all              # Send email at begin and end of job
+#SBATCH -A TG-ATM170028              # Allocation details
+#SBATCH --exclude=c476-092
+
+inputFile="{{ inputfile_name }}"
+problemDir="{{ dirname }}"
+export FI_PROVIDER=psm2
+export I_MPI_EXTRA_FILESYSTEM="on"
+
+# Change directory to go to your bin
+cd $WORK/PadeOps/build_opti/problems/{{ problem_dir }}
+date
+pwd
+
+# Launch MPI code...
+ibrun ./{{ problem_name }} $problemDir/$inputFile

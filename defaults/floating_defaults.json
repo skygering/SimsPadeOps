@@ -1,0 +1,21 @@
+{
+    "sim": {
+        "nx": 0,
+        "ny": 0,
+        "nz": 0,
+        "tstop": 1000,
+        "Lx": 0,
+        "Ly": 0,
+        "Lz": 0
+    },
+    "turb": {
+        "xLoc": 5,
+        "yLoc": 5,
+        "zLoc": 2.5,
+        "cT": 1.33,
+        "surge_freq": 0,
+        "surge_amplitude": 0,
+        "pitch_amplitude": 0
+    },
+    "run": {}
+}
