@@ -1,0 +1,17 @@
+&ACTUATOR_DISK
+xLoc         =   {{ "%0.8f"|format(xLoc|float) }}d0
+yLoc         =   {{ "%0.8f"|format(yLoc|float) }}d0
+zLoc         =   {{ "%0.8f"|format(zLoc|float) }}d0
+diam         =   1.0d0 
+cT           =   {{ "%0.8f"|format(cT|float) }}d0
+yaw          =   0.00000000d0
+tilt         =   0.00000000d0
+/
+/
+&DYNAMICTURBINE
+use_simple_periodic     = .true.
+surge_freq              = {{ "%0.8f"|format(surge_freq|float) }}d0
+surge_amplitude         = {{ "%0.8f"|format(surge_amplitude|float) }}d0
+pitch_amplitude         = {{ "%0.8f"|format(pitch_amplitude|float) }}d0
+verbose                 = .true.
+/ 
