@@ -4,13 +4,9 @@ Helper functions for writing input files
 Skylar Gering
 2025 Janudary 16
 """
-
-import numpy as np
-import jinja2
-import re
-from pathlib import Path
-import warnings
 import json
+import jinja2
+from pathlib import Path
 
 # paths to folders
 BASE = Path(__file__).parent.parent
@@ -38,7 +34,7 @@ def get_nnodes(inputs):
     ny = inputs["ny"]
     nz = inputs["nz"]
     # compute n_nodes; round to nearest even number
-    n_nodes = 2 * np.round(nx * ny * nz / 32**3 / TASKS_PER_NODE / 2)
+    n_nodes = 2 * round(nx * ny * nz / 32**3 / TASKS_PER_NODE / 2)
     return n_nodes
 
 def update_inputs(new_inputs, curr_inputs):

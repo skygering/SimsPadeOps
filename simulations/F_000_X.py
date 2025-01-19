@@ -1,5 +1,4 @@
 import jinja_sim_utils as ju
-from pathlib import Path
 
 sim_template = ju.TEMPLATE_PATH.joinpath("sim_template.jinja")
 turb_template = ju.TEMPLATE_PATH.joinpath("turb_template.jinja")

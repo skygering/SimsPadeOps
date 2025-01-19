@@ -34,3 +34,4 @@
 # Input files in the simulations folder
 simulations/*
 !simulations/*.py
+!simulations/*.md
