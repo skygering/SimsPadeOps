@@ -11,8 +11,6 @@
 #SBATCH -A TG-ATM170028              # Allocation details
 #SBATCH --exclude=c476-092
 
-inputFile="{{ inputfile_name }}"
-problemDir="{{ dirname }}"
 export FI_PROVIDER=psm2
 export I_MPI_EXTRA_FILESYSTEM="on"
 
@@ -22,4 +20,4 @@ date
 pwd
 
 # Launch MPI code...
-ibrun ./{{ problem_name }} $problemDir/$inputFile
+ibrun ./{{ problem_name }} {{ inputdir }}/sim_inputs.dat

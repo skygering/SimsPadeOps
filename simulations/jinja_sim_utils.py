@@ -7,14 +7,14 @@ Skylar Gering
 
 import numpy as np
 import jinja2
-# import re
+import re
 from pathlib import Path
-# import warnings
+import warnings
 import json
 
 # paths to folders
-BASE = Path(__file__).parent
-TEMPLATE_PATH = BASE.joinpath("template")
+BASE = Path(__file__).parent.parent
+TEMPLATE_PATH = BASE.joinpath("templates")
 DEFAULTS_PATH = BASE.joinpath("defaults")
 SIMS_PATH = BASE.joinpath("simulations")
 
@@ -23,10 +23,11 @@ TASKS_PER_NODE = 48  # skx nodes on Stampede3
 
 def safe_mkdir(dst, quiet=False):
     """Make output directory without overwriting files."""
-    dst.mkdir(parents=True, exist_ok=True)
+    dst_path = Path(dst)
+    dst_path.mkdir(parents=True, exist_ok=True)
     if not quiet:
-        print("Created directory", dst.resolve())
-    return dst
+        print("\tCreated directory", dst_path.resolve())
+    return dst_path
 
 def get_nnodes(inputs):
     """
@@ -57,7 +58,7 @@ def write_sim(new_inputs, curr_inputs, template_path, out_path, quiet):
     update_inputs(new_inputs, curr_inputs)
     fill_template(curr_inputs, template_path, out_path.joinpath(curr_inputs["sim_file_name"]))
     if not quiet:
-        print("\t Done writing simulation .dat file.")
+        print("\tDone writing simulation .dat file.")
 
 def write_turb(new_inputs, curr_inputs, template_path, out_path, quiet, n_turbs):
     """Writes a turbine file by copying ActuatorDisk_0001_input.j2"""
@@ -70,31 +71,32 @@ def write_turb(new_inputs, curr_inputs, template_path, out_path, quiet, n_turbs)
     if not quiet:
         print(f"\tDone writing ActuatorDisk_{n_turbs:04d}_input.inp file")
 
-def write_run(new_inputs, curr_inputs, template_path, out_path, quiet, node_cap):
+def write_run(new_inputs, curr_inputs, template_path, out_path, quiet, n_nodes, node_cap):
     update_inputs(new_inputs, curr_inputs)
-    n_hrs = int(n_hrs)
-    n_nodes = get_nnodes(curr_inputs)
-    curr_inputs["n_hrs"] = n_hrs
+    curr_inputs["inputdir"] = str(out_path)  # add the output path for input files for template
+    curr_inputs["n_hrs"] = int(curr_inputs["n_hrs"])
     curr_inputs["n_nodes"] = int(max(min(n_nodes, node_cap), 1))
     fill_template(curr_inputs, template_path, out_path.joinpath(curr_inputs["run_file_name"]))
     if not quiet:
         print("\tDone writing run file.")
 
-def write_padeops_files(new_inputs, *, default_input_path,
-    sim_template_path, run_template_path, turb_template_path = None,
+def write_padeops_files(new_inputs, *, default_input,
+    sim_template, run_template, turb_template = None,
     n_turbs = 1, quiet = False, node_cap = 128
 ):
     # load default parameters
-    default_inputs = json.load(default_input_path)
+    with Path(default_input).open(mode = 'r') as file:
+        curr_inputs = json.load(file)
     # make output directory (user required to provide 'outputdir')
-    out_path = safe_mkdir(new_inputs['inputdir'], quiet=quiet)
+    out_path = safe_mkdir(new_inputs["sim"]["inputdir"], quiet=quiet)
     # load sim template and write simulation's .dat file
-    write_sim(new_inputs["sim"], default_inputs["sim"], sim_template_path, out_path, quiet)
+    write_sim(new_inputs["sim"], curr_inputs["sim"], Path(sim_template), out_path, quiet)
     # load turbine template and write simulation's .ini files (if there are turbines)
     if n_turbs > 0:
-        write_turb(new_inputs["turb"], default_inputs["turb"], turb_template_path, out_path, quiet, n=n_turbs)
+        write_turb(new_inputs["turb"], curr_inputs["turb"], Path(turb_template), out_path, quiet, n_turbs)
     # load run template and write .sh file to run simulation
-    write_run(new_inputs["run"], default_inputs["run"], run_template_path, out_path, quiet, node_cap)
+    write_run(new_inputs["run"], curr_inputs["run"], Path(run_template), out_path,
+              quiet, get_nnodes(curr_inputs["sim"]), node_cap)
 
 ### Functions from Kirby I don't need yet! ###
 

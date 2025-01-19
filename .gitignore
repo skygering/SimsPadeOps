@@ -30,3 +30,7 @@
 *.exe
 *.out
 *.app
+
+# Input files in the simulations folder
+simulations/*
+!simulations/*.py
