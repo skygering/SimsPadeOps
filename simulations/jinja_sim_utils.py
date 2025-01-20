@@ -4,8 +4,10 @@ Helper functions for writing input files
 Skylar Gering
 2025 Janudary 16
 """
-import json
+import csv
+import itertools
 import jinja2
+import json
 from pathlib import Path
 
 # paths to folders
@@ -84,15 +86,58 @@ def write_padeops_files(new_inputs, *, default_input,
     with Path(default_input).open(mode = 'r') as file:
         curr_inputs = json.load(file)
     # make output directory (user required to provide 'outputdir')
-    out_path = safe_mkdir(new_inputs["sim"]["inputdir"], quiet=quiet)
+    inputdir = safe_mkdir(new_inputs["sim"]["inputdir"], quiet=quiet)
     # load sim template and write simulation's .dat file
-    write_sim(new_inputs["sim"], curr_inputs["sim"], Path(sim_template), out_path, quiet)
+    write_sim(new_inputs["sim"], curr_inputs["sim"], Path(sim_template), inputdir, quiet)
     # load turbine template and write simulation's .ini files (if there are turbines)
     if n_turbs > 0:
-        write_turb(new_inputs["turb"], curr_inputs["turb"], Path(turb_template), out_path, quiet, n_turbs)
+        write_turb(new_inputs["turb"], curr_inputs["turb"], Path(turb_template), inputdir, quiet, n_turbs)
     # load run template and write .sh file to run simulation
-    write_run(new_inputs["run"], curr_inputs["run"], Path(run_template), out_path,
+    write_run(new_inputs["run"], curr_inputs["run"], Path(run_template), inputdir,
               quiet, get_nnodes(curr_inputs["sim"]), node_cap)
+    
+
+def write_pardeops_suite(single_inputs, varied_inputs, quiet = False, **kwargs):
+    # grab path for simulation input and output
+    inputdir = safe_mkdir(single_inputs["sim"]["inputdir"], quiet=quiet)
+    outputdir = Path(single_inputs['sim']['outputdir'])
+
+    # define needed values for CSV
+    row_header = ["id"]
+    input_type_list = []
+    value_lists = []
+
+    for input_type in ["sim", "turb", "run"]:
+        # skip input type if not in the varied_inputs dictionary
+        if not input_type in varied_inputs: continue
+        inputs = varied_inputs[input_type]
+        row_header += inputs.keys()
+        input_type_list += itertools.repeat(input_type, len(inputs))
+        value_lists += inputs.values()
+    # write CSV header
+    csv_key_path = inputdir.joinpath('sim_ids.csv')
+    with open(csv_key_path, 'w', newline='') as csv_key:
+        writer = csv.writer(csv_key)
+        writer.writerow(row_header)
+
+    # write the files for each simulation
+    for i, input_prod in enumerate(itertools.product(*value_lists)):
+        id = f"{i:04d}"
+        # update needed values
+        for j, val in enumerate(input_prod):
+            input_key = row_header[j + 1]
+            input_type = input_type_list[j]
+            single_inputs[input_type][input_key] = val
+        # create sub-directory
+        single_inputs['sim']['inputdir'] = inputdir.joinpath(f"Sim_Files_{id}")
+        single_inputs['sim']['outputdir'] = outputdir.joinpath(f"Sim_Files_{id}")
+        # write files
+        write_padeops_files(single_inputs, **kwargs)
+        # add simulation to CSV
+        with open(csv_key_path, "a") as csv_key:
+            writer = csv.writer(csv_key)
+            writer.writerow((id,) + input_prod)
+    return
 
 ### Functions from Kirby I don't need yet! ###
 

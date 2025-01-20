@@ -1,16 +1,15 @@
 import jinja_sim_utils as ju
+# from pathlib import Path
 
 sim_template = ju.TEMPLATE_PATH.joinpath("sim_template.jinja")
 turb_template = ju.TEMPLATE_PATH.joinpath("turb_template.jinja")
 run_template = ju.TEMPLATE_PATH.joinpath("run_template.jinja")
 default_inputs = ju.DEFAULTS_PATH.joinpath("floating_defaults.json")
 
-print(default_inputs)
-
-inputs = dict(
+single_inputs = dict(
     sim = dict(
         # always need to provide the filepaths (no defaults)
-        inputdir = ".",
+        inputdir = "./temp/",
         outputdir = ".",
         turb_dirname = "turbs",
         # if not provided, default_inputs will be used
@@ -29,7 +28,6 @@ inputs = dict(
         xLoc = 5,
         yLoc = 5,
         zLoc = 2.5,
-        cT = 1.33,
         surge_freq = 0,
         surge_amplitude = 0,
         pitch_amplitude = 0,
@@ -46,5 +44,7 @@ inputs = dict(
     )
 )
 
-ju.write_padeops_files(inputs, default_input=default_inputs,
-                       sim_template = sim_template, run_template = run_template, turb_template = turb_template)
+varied_inputs = dict(turb = dict(cT = [1.0, 1.33, 1.66]))
+
+ju.write_pardeops_suite(single_inputs, varied_inputs, default_input = default_inputs,
+    sim_template = sim_template, run_template = run_template, turb_template = turb_template)
