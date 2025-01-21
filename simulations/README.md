@@ -4,9 +4,14 @@ This documentation contains explanations of each of the simulations "created" th
 
 ## Floating Simulations
 
-Each of the floating turbine simulation files will start with an `F`. After this, it will be followed by an ID `XXX` for the number of the simulation. There will then be some combination of `PI` (pitch), `SU` (surge), and `SW` (sway) symbols. If it isn't moving, the key will be `X`.
+Each of the floating turbine simulation files will start with an `F`. After this, it will be followed by an ID `XXXX` for the number of the simulation. There will then be some combination of `PI` (pitch), `SU` (surge), and `SW` (sway) symbols. If it isn't moving, the key will be `X`.
 
-Here is a list of the simulations with the ID, as well as the keys. I have also noted the ranges or values of key parameters. 
+Here is a list of the simulations with the ID, as well as the keys. I have also noted which key are varied / the purpose of the simulation. 
 
-| ID  | Keys| Notes                                | 
-| 000 | X   | Stable simulation, varying CT' values|
+| ID   | Keys | Notes | Date |
+|------|------|-------|------|
+| 0000 | X    | Varying dt and CT' to test needed timestep | 01/21/25|
+
+
+
+

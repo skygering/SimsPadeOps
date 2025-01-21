@@ -58,12 +58,12 @@ def write_sim(new_inputs, curr_inputs, template_path, out_path, quiet):
     if not quiet:
         print("\tDone writing simulation .dat file.")
 
-def write_turb(new_inputs, curr_inputs, template_path, out_path, quiet, n_turbs):
+def write_turb(new_inputs, curr_inputs, template_path, out_path, turb_path, quiet, n_turbs):
     """Writes a turbine file by copying ActuatorDisk_0001_input.j2"""
     if n_turbs > 1: raise NotImplementedError
     update_inputs(new_inputs, curr_inputs)
     # note that this should only happen for the first turbine once we implement more (but needs to happen after update_inputs!
-    out_turb_path = safe_mkdir(out_path.joinpath(curr_inputs['turbine_dir_name']), quiet=quiet)
+    out_turb_path = safe_mkdir(out_path.joinpath(turb_path), quiet=quiet)
     file_path = out_turb_path.joinpath(f"ActuatorDisk_{n_turbs:04d}_input.inp")
     fill_template(curr_inputs, template_path, file_path)
     if not quiet:
@@ -91,7 +91,7 @@ def write_padeops_files(new_inputs, *, default_input,
     write_sim(new_inputs["sim"], curr_inputs["sim"], Path(sim_template), inputdir, quiet)
     # load turbine template and write simulation's .ini files (if there are turbines)
     if n_turbs > 0:
-        write_turb(new_inputs["turb"], curr_inputs["turb"], Path(turb_template), inputdir, quiet, n_turbs)
+        write_turb(new_inputs["turb"], curr_inputs["turb"], Path(turb_template), inputdir, curr_inputs["sim"]["turb_dirname"], quiet, n_turbs)
     # load run template and write .sh file to run simulation
     write_run(new_inputs["run"], curr_inputs["run"], Path(run_template), inputdir,
               quiet, get_nnodes(curr_inputs["sim"]), node_cap)

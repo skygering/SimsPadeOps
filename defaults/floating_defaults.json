@@ -1,15 +1,16 @@
 {
     "sim": {
-        "nx": 0,
-        "ny": 0,
-        "nz": 0,
+        "nx": 56,
+        "ny": 128,
+        "nz": 128,
         "tstop": 1000,
         "CFL" : -1,
         "dt" : 0.25,
-        "Lx": 0,
-        "Ly": 0,
-        "Lz": 0,
-        "sim_file_name" : "sim_inputs.dat"
+        "Lx": 25,
+        "Ly": 10,
+        "Lz": 5,
+        "sim_file_name" : "sim_inputs.dat",
+        "turb_dirname" : "turbine_dir"
     },
     "turb": {
         "xLoc": 5,
@@ -18,10 +19,11 @@
         "cT": 1.33,
         "surge_freq": 0,
         "surge_amplitude": 0,
-        "pitch_amplitude": 0,
-        "turbine_dir_name" : "turbine_dir"
+        "pitch_amplitude": 0
     },
     "run": {
-        "run_file_name": "run.sh"
+        "run_file_name": "run.sh",
+        "n_hrs": 24,
+        "n_nodes" : 1
     }
 }

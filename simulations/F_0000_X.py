@@ -1,50 +1,38 @@
 import jinja_sim_utils as ju
-# from pathlib import Path
+from pathlib import Path
 
 sim_template = ju.TEMPLATE_PATH.joinpath("sim_template.jinja")
 turb_template = ju.TEMPLATE_PATH.joinpath("turb_template.jinja")
 run_template = ju.TEMPLATE_PATH.joinpath("run_template.jinja")
 default_inputs = ju.DEFAULTS_PATH.joinpath("floating_defaults.json")
 
+# file name based on current script name
+curr_script_name = Path(__file__).with_suffix('').name
+scratch_path = "./scratch/10264/sgering/"
+
 single_inputs = dict(
     sim = dict(
         # always need to provide the filepaths (no defaults)
-        inputdir = "./temp/",
-        outputdir = ".",
-        turb_dirname = "turbs",
+        inputdir = scratch_path + curr_script_name,
+        outputdir = scratch_path + curr_script_name,
         # if not provided, default_inputs will be used
-        nx = 0,
-        ny = 0,
-        nz = 0,
-        tstop = 0,
-        CFL = -1,
-        dt = 0.25,
-        Lx = 0,
-        Ly = 0,
-        Lz = 0,
+        tstop = 250,
     ),
     turb = dict(  # can only provide one turbine right now - update when needed
         # if not provided, default_inputs will be used
-        xLoc = 5,
-        yLoc = 5,
-        zLoc = 2.5,
-        surge_freq = 0,
-        surge_amplitude = 0,
-        pitch_amplitude = 0,
     ),
     run = dict(
         # always need to provide the filepaths (no defaults)
-        problem_dir = "",
-        problem_name = "",
-        job_name = "",
+        problem_dir = "turbines",
+        problem_name = "AD_coriolis_shear",
+        job_name = "steady_turbine_test_sg",
         # if not provided, default_inputs will be used
-        n_hrs = 24,
-        # calculated regardless of input (could change later...)
-        n_nodes = 1,
+        n_hrs = 4,
     )
 )
 
-varied_inputs = dict(turb = dict(cT = [1.0, 1.33, 1.66]))
+varied_inputs = dict(sim = dict(dt = [0.5, 1/(20 * 1.2)]),  # big and small timesteps (max f expected in unsteady sims is ~1.2 so 1 / (20 * 1))
+                     turb = dict(cT = [1.0, 3.0]))  # below and above the Betz limit
 
 ju.write_pardeops_suite(single_inputs, varied_inputs, default_input = default_inputs,
     sim_template = sim_template, run_template = run_template, turb_template = turb_template)
