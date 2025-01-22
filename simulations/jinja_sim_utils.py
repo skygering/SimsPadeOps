@@ -101,7 +101,7 @@ def write_pardeops_suite(single_inputs, varied_inputs, quiet = False, nested = F
     # grab path for simulation input and output
     inputdir = safe_mkdir(single_inputs["sim"]["inputdir"], quiet=quiet)
     outputdir = Path(single_inputs['sim']['outputdir'])
-
+    jobname = single_inputs["run"]["job_name"]
     # define needed values for CSV
     row_header = ["id"]
     input_type_list = []
@@ -130,10 +130,10 @@ def write_pardeops_suite(single_inputs, varied_inputs, quiet = False, nested = F
             input_type = input_type_list[j]
             single_inputs[input_type][input_key] = val
         # create sub-directory
-        single_inputs['sim']['inputdir'] = inputdir.joinpath(f"Sim_Files_{id}")
-        single_inputs['sim']['outputdir'] = outputdir.joinpath(f"Sim_Files_{id}")
+        single_inputs['sim']['inputdir'] = inputdir.joinpath(f"Sim_{id}")
+        single_inputs['sim']['outputdir'] = outputdir.joinpath(f"Sim_{id}")
         # update job name
-        single_inputs["run"]["job_name"] += f"_{id}"
+        single_inputs["run"]["job_name"] = jobname + f"_{id}"
         # write files
         write_padeops_files(single_inputs, **kwargs)
         # add simulation to CSV

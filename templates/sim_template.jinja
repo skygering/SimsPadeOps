@@ -1,9 +1,9 @@
 &INPUT
 inputdir                      = "{{ inputdir }}"                    ! Directory for any input files
 outputdir                     = "{{ outputdir }}"                   ! Directory for all output files
-nx                            = {{ "%d"|format(nx|int)}}            ! Number of points in X
-ny                            = {{ "%d"|format(ny|int)}}            ! Number of points in Y
-nz                            = {{ "%d"|format(nz|int)}}            ! Number of points in Z
+nx                            = {{ "%d"|format(nx|int) }}            ! Number of points in X
+ny                            = {{ "%d"|format(ny|int) }}            ! Number of points in Y
+nz                            = {{ "%d"|format(nz|int) }}            ! Number of points in Z
 tstop                         = {{ "%.3f"|format(tstop|float)}}d0   ! Physical time to stop the simulation
 CFL                           = -1                                  ! CFL criterion for calculating the time step (Set to negative to disable)
 dt                            = {{ "%.3f"|format(dt|float)}}d0      ! Fixed time step value (only used if CFL is set to negative)
@@ -27,7 +27,7 @@ dealiasFact                   = 0.6667d0
 &IO
 RunID                         = 1            ! Run Label (All output files will be tagged with this nubber)
 t_restartDump                 = 10000        ! Restart File Dumping Frequency  (# of timesteps)
-t_dataDump                    = 1000         ! Data dumping frequency (# of timesteps)
+t_dataDump                    = {{ "%d"|format(t_dataDump|int) }}         ! Data dumping frequency (# of timesteps)
 ioType                        = 0            ! 0: Fortran Binaries, 1: .vtk files
 dumpPlanes                    = .FALSE.      ! Dump plane visualations. Select planes in initialize.F90
 t_planeDump                   = 100          ! Plane dumping frequency (# of timesteps)

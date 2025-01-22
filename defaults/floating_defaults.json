@@ -10,7 +10,8 @@
         "Ly": 10,
         "Lz": 5,
         "sim_file_name" : "sim_inputs.dat",
-        "turb_dirname" : "turbine_dir"
+        "turb_dirname" : "turbine_dir",
+        "t_dataDump" : 1000
     },
     "turb": {
         "xLoc": 5,
