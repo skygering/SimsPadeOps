@@ -11,13 +11,12 @@ default_inputs = ju.DEFAULTS_PATH.joinpath("floating_defaults.json")
 
 # file name based on current script name
 curr_script_name = Path(__file__).with_suffix('').name
-scratch_data_path = os.environ['SCRATCH'] + "/Data/"
 
 single_inputs = dict(
     sim = dict(
         # always need to provide the filepaths (no defaults)
-        inputdir = scratch_data_path + curr_script_name + "_Files",
-        outputdir = scratch_data_path + curr_script_name + "_Files",
+        inputdir = ju.DATA_PATH + curr_script_name + "_Files",
+        outputdir = ju.DATA_PATH + curr_script_name + "_Files",
         # if not provided, default_inputs will be used
         tstop = 250,
         t_dataDump = 50,
