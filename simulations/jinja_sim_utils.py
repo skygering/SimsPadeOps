@@ -58,12 +58,11 @@ def write_sim(new_inputs, curr_inputs, template_path, out_path, quiet):
     if not quiet:
         print("\tDone writing simulation .dat file.")
 
-def write_turb(new_inputs, curr_inputs, template_path, out_path, turb_path, quiet, n_turbs):
+def write_turb(new_inputs, curr_inputs, template_path, out_turb_path, quiet, n_turbs):
     """Writes a turbine file by copying ActuatorDisk_0001_input.j2"""
     if n_turbs > 1: raise NotImplementedError
     update_inputs(new_inputs, curr_inputs)
     # note that this should only happen for the first turbine once we implement more (but needs to happen after update_inputs!
-    out_turb_path = safe_mkdir(out_path.joinpath(turb_path), quiet=quiet)
     file_path = out_turb_path.joinpath(f"ActuatorDisk_{n_turbs:04d}_input.inp")
     fill_template(curr_inputs, template_path, file_path)
     if not quiet:
@@ -87,17 +86,18 @@ def write_padeops_files(new_inputs, *, default_input,
         curr_inputs = json.load(file)
     # make output directory (user required to provide 'outputdir')
     inputdir = safe_mkdir(new_inputs["sim"]["inputdir"], quiet=quiet)
-    # load sim template and write simulation's .dat file
-    write_sim(new_inputs["sim"], curr_inputs["sim"], Path(sim_template), inputdir, quiet)
     # load turbine template and write simulation's .ini files (if there are turbines)
     if n_turbs > 0:
-        write_turb(new_inputs["turb"], curr_inputs["turb"], Path(turb_template), inputdir, curr_inputs["sim"]["turb_dirname"], quiet, n_turbs)
+        turb_path = safe_mkdir(inputdir.joinpath(curr_inputs["sim"]["turb_dirname"]), quiet=quiet)
+        curr_inputs["sim"]["turb_dirname"] = turb_path
+        write_turb(new_inputs["turb"], curr_inputs["turb"], Path(turb_template), turb_path, quiet, n_turbs)
+    # load sim template and write simulation's .dat file
+    write_sim(new_inputs["sim"], curr_inputs["sim"], Path(sim_template), inputdir, quiet)
     # load run template and write .sh file to run simulation
     write_run(new_inputs["run"], curr_inputs["run"], Path(run_template), inputdir,
-              quiet, get_nnodes(curr_inputs["sim"]), node_cap)
-    
+              quiet, get_nnodes(curr_inputs["sim"]), node_cap)  
 
-def write_pardeops_suite(single_inputs, varied_inputs, quiet = False, **kwargs):
+def write_pardeops_suite(single_inputs, varied_inputs, quiet = False, nested = False, **kwargs):
     # grab path for simulation input and output
     inputdir = safe_mkdir(single_inputs["sim"]["inputdir"], quiet=quiet)
     outputdir = Path(single_inputs['sim']['outputdir'])
@@ -121,7 +121,8 @@ def write_pardeops_suite(single_inputs, varied_inputs, quiet = False, **kwargs):
         writer.writerow(row_header)
 
     # write the files for each simulation
-    for i, input_prod in enumerate(itertools.product(*value_lists)):
+    suite_iter = itertools.product(*value_lists) if nested else itertools.zip_longest(*value_lists)
+    for i, input_prod in enumerate(suite_iter):
         id = f"{i:04d}"
         # update needed values
         for j, val in enumerate(input_prod):
@@ -131,6 +132,8 @@ def write_pardeops_suite(single_inputs, varied_inputs, quiet = False, **kwargs):
         # create sub-directory
         single_inputs['sim']['inputdir'] = inputdir.joinpath(f"Sim_Files_{id}")
         single_inputs['sim']['outputdir'] = outputdir.joinpath(f"Sim_Files_{id}")
+        # update job name
+        single_inputs["run"]["job_name"] += f"_{id}"
         # write files
         write_padeops_files(single_inputs, **kwargs)
         # add simulation to CSV
