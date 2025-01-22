@@ -1,6 +1,8 @@
 import padeopsIO as pio
 import argparse
 import os
+import json
+from pathlib import Path
 
 DATA_PATH = os.environ['SCRATCH'] + "/Data/"
 
@@ -13,4 +15,8 @@ args = parser.parse_args()
 # TODO - Make this command line runnable
 # https://docs.python.org/3/howto/argparse.html
 # Then I could add an alias that zips and downloads from command line
-pio.write_npz(write_dir = DATA_PATH + args.write_dir, filename = args.filename)
+out_dir = Path(DATA_PATH + args.write_dir)
+
+x, y, z = 25, 10, 5
+sim = pio.BudgetIO(out_dir, padeops = True, runid = 1)
+sim.write_metadata(out_dir, args.filename, "npz", x, y, z)
