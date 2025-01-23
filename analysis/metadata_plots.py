@@ -39,22 +39,4 @@ for i, folder in enumerate(sub_folders):
     ax.plot(time, power, label=label, lw=0.7)
 
 plt.legend(loc="upper left")
-
-
-
-# args = au.arg_parser()
-# out_dir = Path(au.DATA_PATH + args.write_dir)
-# out_dir = args.write_dir
-
-sim = pio.BudgetIO(out_dir, padeops = True, runid = 1)
-# sim = pio.BudgetIO(out_dir, npz = True, filename = args.filename)
-dt = sim.input_nml["input"]["dt"]
-power = sim.read_turb_power(turb=1)
-time = [dt * n for n in range(0, len(power))]
-fig, ax = plt.subplots(figsize=(9, 3))
-
-
-ax.plot(time, power, label='A', lw=0.7)
-
-ax.set_xlabel('Time step (-)')
-# plt.show()
+plt.savefig(suite_path + 'suite_power.png')
