@@ -19,10 +19,10 @@ Remember that scratch is periodically deleted!! So make sure to push your change
 2. Write a new simulations.py file that defines the parameters you want different from the defaults and calls one of the two functions to write the needed files.
 3. Run the simulation file you made to generate PadeOps input files and a bash run script
 
-    """
+    ```
     cd $SCRATCH
     python SimsPadeOps/simulations/<your_file.py>
-    """
+    ```
 
 4. Check that the needed files were created in the Data `folder`.
 5. Compile PadeOps.
