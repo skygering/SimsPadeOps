@@ -55,6 +55,9 @@ def fill_template(inputs, template_path, file_path):
         f.write(out)
 
 def write_sim(new_inputs, curr_inputs, template_path, out_path, quiet):
+    if "outputdir" not in new_inputs:
+        curr_inputs["outputdir"] = out_path.joinpath("output")
+    safe_mkdir(curr_inputs["outputdir"], quiet=quiet)
     update_inputs(new_inputs, curr_inputs)
     fill_template(curr_inputs, template_path, out_path.joinpath(curr_inputs["sim_file_name"]))
     if not quiet:
@@ -76,6 +79,7 @@ def write_run(new_inputs, curr_inputs, template_path, out_path, quiet, n_nodes, 
     curr_inputs["inputdir"] = str(out_path)  # add the output path for input files for template
     curr_inputs["n_hrs"] = int(curr_inputs["n_hrs"])
     curr_inputs["n_nodes"] = int(max(min(n_nodes, node_cap), 1))
+    curr_inputs["job_path"] = out_path.joinpath(curr_inputs["job_name"])
     fill_template(curr_inputs, template_path, out_path.joinpath(curr_inputs["run_file_name"]))
     if not quiet:
         print("\tDone writing run file.")
@@ -87,7 +91,7 @@ def write_padeops_files(new_inputs, *, default_input,
     # load default parameters
     with Path(default_input).open(mode = 'r') as file:
         curr_inputs = json.load(file)
-    # make output directory (user required to provide 'outputdir')
+    # make input directory directory (user required to provide 'inputdir')
     inputdir = safe_mkdir(new_inputs["sim"]["inputdir"], quiet=quiet)
     # load turbine template and write simulation's .ini files (if there are turbines)
     if n_turbs > 0:
@@ -103,7 +107,6 @@ def write_padeops_files(new_inputs, *, default_input,
 def write_pardeops_suite(single_inputs, varied_inputs, quiet = False, nested = False, **kwargs):
     # grab path for simulation input and output
     inputdir = safe_mkdir(single_inputs["sim"]["inputdir"], quiet=quiet)
-    outputdir = Path(single_inputs['sim']['outputdir'])
     jobname = single_inputs["run"]["job_name"]
     # define needed values for CSV
     row_header = ["id"]
@@ -134,7 +137,8 @@ def write_pardeops_suite(single_inputs, varied_inputs, quiet = False, nested = F
             single_inputs[input_type][input_key] = val
         # create sub-directory
         single_inputs['sim']['inputdir'] = inputdir.joinpath(f"Sim_{id}")
-        single_inputs['sim']['outputdir'] = outputdir.joinpath(f"Sim_{id}")
+        # set run ID
+        single_inputs['sim']["RunID"] = id
         # update job name
         single_inputs["run"]["job_name"] = jobname + f"_{id}"
         # write files
