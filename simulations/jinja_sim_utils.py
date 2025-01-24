@@ -55,9 +55,6 @@ def fill_template(inputs, template_path, file_path):
         f.write(out)
 
 def write_sim(new_inputs, curr_inputs, template_path, out_path, quiet):
-    if "outputdir" not in new_inputs:
-        curr_inputs["outputdir"] = out_path.joinpath("output")
-    safe_mkdir(curr_inputs["outputdir"], quiet=quiet)
     update_inputs(new_inputs, curr_inputs)
     fill_template(curr_inputs, template_path, out_path.joinpath(curr_inputs["sim_file_name"]))
     if not quiet:
@@ -93,6 +90,8 @@ def write_padeops_files(new_inputs, *, default_input,
         curr_inputs = json.load(file)
     # make input directory directory (user required to provide 'inputdir')
     inputdir = safe_mkdir(new_inputs["sim"]["inputdir"], quiet=quiet)
+    # inputdir and outputdir must be the same for PadeOpsIO to work
+    new_inputs["sim"]["outputdir"] = new_inputs["sim"]["inputdir"]
     # load turbine template and write simulation's .ini files (if there are turbines)
     if n_turbs > 0:
         turb_path = safe_mkdir(inputdir.joinpath(curr_inputs["sim"]["turb_dirname"]), quiet=quiet)
