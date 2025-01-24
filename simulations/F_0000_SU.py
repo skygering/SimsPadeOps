@@ -23,12 +23,14 @@ single_inputs = dict(
     ),
     turb = dict(  # can only provide one turbine right now - update when needed
         # if not provided, default_inputs will be used
+        surge_freq = 0.15,
+        surge_amplitude = 0.25,
     ),
     run = dict(
         # always need to provide the filepaths (no defaults)
         problem_dir = "turbines",
         problem_name = "AD_coriolis_shear",
-        job_name = "steady_test_sg",
+        job_name = "surge_test_sg",
         # if not provided, default_inputs will be used
         n_hrs = 4,
     )

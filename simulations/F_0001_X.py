@@ -20,6 +20,7 @@ single_inputs = dict(
         # if not provided, default_inputs will be used
         tstop = 250,
         t_dataDump = 50,
+        dt = 0.1,
     ),
     turb = dict(  # can only provide one turbine right now - update when needed
         # if not provided, default_inputs will be used
@@ -34,8 +35,7 @@ single_inputs = dict(
     )
 )
 
-varied_inputs = dict(sim = dict(dt = [0.2, 0.04]),  # big and small timesteps (max f expected in unsteady sims is ~1.2 so 1 / (20 * 1))
-                     turb = dict(cT = [1.0, 3.0], ))  # below and above the Betz limit
+varied_inputs = dict(turb = dict(cT = [1.0, 1.5, 2.0, 2.5, 3.0]))  # below and above the Betz limit
 
 
 ju.write_pardeops_suite(single_inputs, varied_inputs, nested = True, default_input = default_inputs,

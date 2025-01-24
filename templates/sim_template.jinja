@@ -1,11 +1,11 @@
 &INPUT
 inputdir                      = "{{ inputdir }}"                    ! Directory for any input files
 outputdir                     = "{{ outputdir }}"                   ! Directory for all output files
-nx                            = {{ "%d"|format(nx|int) }}            ! Number of points in X
-ny                            = {{ "%d"|format(ny|int) }}            ! Number of points in Y
-nz                            = {{ "%d"|format(nz|int) }}            ! Number of points in Z
+nx                            = {{ "%d"|format(nx|int) }}           ! Number of points in X
+ny                            = {{ "%d"|format(ny|int) }}           ! Number of points in Y
+nz                            = {{ "%d"|format(nz|int) }}           ! Number of points in Z
 tstop                         = {{ "%.3f"|format(tstop|float)}}d0   ! Physical time to stop the simulation
-CFL                           = -1                                  ! CFL criterion for calculating the time step (Set to negative to disable)
+CFL                           = {{ "%.3f"|format(CFL|float)}}d0      ! CFL criterion for calculating the time step (Set to negative to disable)
 dt                            = {{ "%.3f"|format(dt|float)}}d0      ! Fixed time step value (only used if CFL is set to negative)
 prow                          = 0                                   ! Number of rows in 2D processor decomposition (set 0 for auto-tuning)
 pcol                          = 0                                   ! Number of rows in 2D processor decomposition (set 0 for auto-tuning)
@@ -104,7 +104,7 @@ turbInfoDir           = "{{ turb_dirname }}"
 ADM_Type              = 5
 powerDumpDir          = "XXX"
 useDynamicYaw         = .FALSE.
-useDynamicTurbine     = .TRUE.
+useDynamicTurbine     = .{{ useDynamicTurbine|upper }}.
 yawUpdateInterval     = 10000
 inputDirDyaw          = "XXX"
 /

@@ -71,6 +71,7 @@ def write_turb(new_inputs, curr_inputs, template_path, out_turb_path, quiet, n_t
         print(f"\tDone writing ActuatorDisk_{n_turbs:04d}_input.inp file")
 
 def write_run(new_inputs, curr_inputs, template_path, out_path, quiet, n_nodes, node_cap):
+    # TODO: set the right file path for the .e and .o files so I don't need to CD into them
     update_inputs(new_inputs, curr_inputs)
     curr_inputs["inputdir"] = str(out_path)  # add the output path for input files for template
     curr_inputs["n_hrs"] = int(curr_inputs["n_hrs"])

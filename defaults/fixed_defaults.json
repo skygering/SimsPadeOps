@@ -4,15 +4,15 @@
         "ny": 128,
         "nz": 128,
         "tstop": 1000,
-        "CFL" : -1,
-        "dt" : 0.25,
+        "CFL" : 1.4,
+        "dt" : 0.001,
         "Lx": 25,
         "Ly": 10,
         "Lz": 5,
         "sim_file_name" : "sim_inputs.dat",
         "turb_dirname" : "turbine_dir",
         "t_dataDump" : 1000,
-        "useDynamicTurbine": true
+        "useDynamicTurbine" : false
     },
     "turb": {
         "xLoc": 5,
