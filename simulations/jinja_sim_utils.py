@@ -101,24 +101,56 @@ def write_padeops_files(new_inputs, *, default_input,
     write_sim(new_inputs["sim"], curr_inputs["sim"], Path(sim_template), inputdir, quiet)
     # load run template and write .sh file to run simulation
     write_run(new_inputs["run"], curr_inputs["run"], Path(run_template), inputdir,
-              quiet, get_nnodes(curr_inputs["sim"]), node_cap)  
+              quiet, get_nnodes(curr_inputs["sim"]), node_cap)
 
-def write_pardeops_suite(single_inputs, varied_inputs, quiet = False, nested = False, **kwargs):
+def _prep_padeops_suite_inputs(varied_inputs, varied_header, nested, default_input):
+    row_header = ["id"]
+    input_type_list = []
+    if isinstance(varied_inputs, dict):
+        value_lists = []
+        for input_type in iter(varied_inputs):  # sim, turb, or run keys
+            # skip input type if not in the varied_inputs dictionary
+            if not input_type in varied_inputs: continue
+            inputs = varied_inputs[input_type]
+            row_header += inputs.keys()
+            input_type_list += itertools.repeat(input_type, len(inputs))
+            value_lists += inputs.values()
+        suite_iter = itertools.product(*value_lists) if nested else itertools.zip_longest(*value_lists)
+    else:
+        try:
+            suite_iter = iter(varied_inputs)
+        except TypeError as err: # not iterable
+            print(err.args)
+        else: # iterable
+            with Path(default_input).open(mode = 'r') as file:
+                inputs = json.load(file)
+            for row in varied_header:
+                if row in inputs["sim"]:
+                    input_type_list.append("sim")
+                elif row in inputs["turb"]:
+                    input_type_list.append("turb")
+                elif row in inputs["run"]:
+                    input_type_list.append("run")
+                else:
+                    raise Exception(f"Key {row} isn't a valid input to the simulation as it isn't in the provided default file.")
+            row_header += varied_header
+    return suite_iter, row_header, input_type_list
+
+def flatten_tuple(tuple_list):
+    flat_tuple = ()
+    for sub_elem in tuple_list:
+        if isinstance(sub_elem, tuple):
+            flat_tuple += sub_elem
+        else:
+            flat_tuple += (sub_elem, )
+    return flat_tuple
+
+def write_padeops_suite(single_inputs, varied_inputs, *, default_input, varied_header = None, quiet = False, nested = False, **kwargs):
     # grab path for simulation input and output
     inputdir = safe_mkdir(single_inputs["sim"]["inputdir"], quiet=quiet)
     jobname = single_inputs["run"]["job_name"]
-    # define needed values for CSV
-    row_header = ["id"]
-    input_type_list = []
-    value_lists = []
-
-    for input_type in ["sim", "turb", "run"]:
-        # skip input type if not in the varied_inputs dictionary
-        if not input_type in varied_inputs: continue
-        inputs = varied_inputs[input_type]
-        row_header += inputs.keys()
-        input_type_list += itertools.repeat(input_type, len(inputs))
-        value_lists += inputs.values()
+    # create simulation variables and values needed for CSV generation
+    suite_iter, row_header, input_type_list = _prep_padeops_suite_inputs(varied_inputs, varied_header, nested, default_input)
     # write CSV header
     csv_key_path = inputdir.joinpath('sim_ids.csv')
     with open(csv_key_path, 'w', newline='') as csv_key:
@@ -126,11 +158,11 @@ def write_pardeops_suite(single_inputs, varied_inputs, quiet = False, nested = F
         writer.writerow(row_header)
 
     # write the files for each simulation
-    suite_iter = itertools.product(*value_lists) if nested else itertools.zip_longest(*value_lists)
-    for i, input_prod in enumerate(suite_iter):
+    for i, input_vals in enumerate(suite_iter):
+        input_vals = flatten_tuple(input_vals)
         id = f"{i:04d}"
         # update needed values
-        for j, val in enumerate(input_prod):
+        for j, val in enumerate(input_vals):
             input_key = row_header[j + 1]
             input_type = input_type_list[j]
             single_inputs[input_type][input_key] = val
@@ -141,11 +173,11 @@ def write_pardeops_suite(single_inputs, varied_inputs, quiet = False, nested = F
         # update job name
         single_inputs["run"]["job_name"] = jobname + f"_{id}"
         # write files
-        write_padeops_files(single_inputs, **kwargs)
+        write_padeops_files(single_inputs, default_input = default_input, **kwargs)
         # add simulation to CSV
         with open(csv_key_path, "a") as csv_key:
             writer = csv.writer(csv_key)
-            writer.writerow((id,) + input_prod)
+            writer.writerow((id,) + input_vals)
     return
 
 ### Functions from Kirby I don't need yet! ###

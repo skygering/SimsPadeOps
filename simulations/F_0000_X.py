@@ -38,5 +38,5 @@ varied_inputs = dict(sim = dict(dt = [0.2, 0.04]),  # big and small timesteps (m
                      turb = dict(cT = [1.0, 3.0], ))  # below and above the Betz limit
 
 
-ju.write_pardeops_suite(single_inputs, varied_inputs, nested = True, default_input = default_inputs,
+ju.write_padeops_suite(single_inputs, varied_inputs, nested = True, default_input = default_inputs,
     sim_template = sim_template, run_template = run_template, turb_template = turb_template)
