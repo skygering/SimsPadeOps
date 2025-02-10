@@ -8,6 +8,7 @@ import csv
 import itertools
 import jinja2
 import json
+import math
 import os
 from pathlib import Path
 
@@ -40,6 +41,31 @@ def get_nnodes(inputs):
     # compute n_nodes; round to nearest even number
     n_nodes = 2 * round(nx * ny * nz / 32**3 / TASKS_PER_NODE / 2)
     return n_nodes
+
+def find_min_dt(nx, ny, nz, sf, single_inputs):
+    """
+    Computes minimim needed timestep given grid size and turbine movement (pitch + surge)
+    """
+    # find the dx, dy, and dz given the provided nx, ny, and nz (in the 1st term of varied_inputs)
+    dx = single_inputs["sim"]["Lx"] / nx
+    dy = single_inputs["sim"]["Ly"] / ny
+    dz = single_inputs["sim"]["Lz"] / nz
+    min_dt = min(dx, dy, dz)  # single_inputs["sim"]["CFL"] *
+    if sf != 0:  # if the turbine has non-zero frequency (in the 2nd term of varied inputs), update timestep
+        min_dt = min(min_dt, 1/16)  # 16 timesteps per frequency
+    return min_dt
+
+def find_filter_width(nx, ny, nz, single_inputs):
+    """
+    filter delta/D = 3h/2D -> delta = 3h/2 since D = 1 and h = sqrt(dx^2 + dy^2 + dz^2)
+    """
+    filter_width = [0] * len(nx)
+    for i, _ in enumerate(filter_width):
+        dx = single_inputs["sim"]["Lx"] / nx[i]
+        dy = single_inputs["sim"]["Ly"] / ny[i]
+        dz = single_inputs["sim"]["Lz"] / nz[i]
+        filter_width[i] = math.sqrt(dx**2 +dy**2 + dz**2)
+    return filter_width
 
 def update_inputs(new_inputs, curr_inputs):
     """Updates current (default) input values with user-provided new_inputs"""
