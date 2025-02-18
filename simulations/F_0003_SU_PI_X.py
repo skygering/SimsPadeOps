@@ -18,7 +18,7 @@ single_inputs = dict(
         # if not provided, default_inputs will be used
         Lx = 25,
         Ly = 10,
-        Lz = 5,
+        Lz = 10,
         tstop = 250,
         t_dataDump = 50,
     ),
@@ -27,6 +27,7 @@ single_inputs = dict(
         surge_freq = 0.15,
         surge_amplitude = 0.25,
         useCorrection = True,
+        cT = 1.0,
     ),
     run = dict(
         # always need to provide the filepaths (no defaults)
@@ -39,14 +40,15 @@ single_inputs = dict(
 )
 
 # simulation setup parameters
-cT = [1.0, 3.0]
-nx = [160, 256, 384]
-ny = [80, 128, 192]
-nz = [80, 128, 192]
+nx = [64, 128, 256, 512]
+ny = [32, 64, 128, 256]
+nz = [32, 64, 128, 256]
+
 # filter delta/D = 3h/2D -> delta = 3h/2 since D = 1 and h = sqrt(dx^2 + dy^2 + dz^2)
 filterWidth = [ju.find_filter_width(nx[i], ny[i], nz[i], single_inputs) for i, _ in enumerate(nx)]
 
-# moving turbine parameters 
+# moving turbine parameters
+cT = [1.0, 5.0, 10.0]
 sf = [0, 1, 1]
 sa = [0, 0.5, 0]
 pa = [0, 0, 5.0]

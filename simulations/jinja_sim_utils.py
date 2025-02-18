@@ -42,7 +42,7 @@ def get_nnodes(inputs):
     n_nodes = 2 * round(nx * ny * nz / 32**3 / TASKS_PER_NODE / 2)
     return n_nodes
 
-def find_min_dt(nx, ny, nz, sf, single_inputs):
+def find_min_dt(CFL, nx, ny, nz, sf, single_inputs, u = 1.0, v = 1.0, w = 1.0):
     """
     Computes minimim needed timestep given grid size and turbine movement (pitch + surge)
     """
@@ -50,7 +50,12 @@ def find_min_dt(nx, ny, nz, sf, single_inputs):
     dx = single_inputs["sim"]["Lx"] / nx
     dy = single_inputs["sim"]["Ly"] / ny
     dz = single_inputs["sim"]["Lz"] / nz
-    min_dt = min(dx, dy, dz)  # single_inputs["sim"]["CFL"] *
+    tx = dx / u if u != 0 else math.inf
+    ty = dy / v if v != 0 else math.inf
+    tz = dz / w if w != 0 else math.inf
+    min_dt = CFL * min(tx, ty, tz)
+    if min_dt == math.inf:
+        raise ValueError('Not all of u, v, and w should be zero.')
     if sf != 0:  # if the turbine has non-zero frequency (in the 2nd term of varied inputs), update timestep
         min_dt = min(min_dt, 1/16)  # 16 timesteps per frequency
     return min_dt
@@ -59,12 +64,10 @@ def find_filter_width(nx, ny, nz, single_inputs):
     """
     filter delta/D = 3h/2D -> delta = 3h/2 since D = 1 and h = sqrt(dx^2 + dy^2 + dz^2)
     """
-    filter_width = [0] * len(nx)
-    for i, _ in enumerate(filter_width):
-        dx = single_inputs["sim"]["Lx"] / nx[i]
-        dy = single_inputs["sim"]["Ly"] / ny[i]
-        dz = single_inputs["sim"]["Lz"] / nz[i]
-        filter_width[i] = math.sqrt(dx**2 +dy**2 + dz**2)
+    dx = single_inputs["sim"]["Lx"] / nx
+    dy = single_inputs["sim"]["Ly"] / ny
+    dz = single_inputs["sim"]["Lz"] / nz
+    filter_width = 3 * math.sqrt(dx**2 +dy**2 + dz**2) / 2
     return filter_width
 
 def update_inputs(new_inputs, curr_inputs):
@@ -182,7 +185,6 @@ def write_padeops_suite(single_inputs, varied_inputs, *, default_input, varied_h
     with open(csv_key_path, 'w', newline='') as csv_key:
         writer = csv.writer(csv_key)
         writer.writerow(row_header)
-
     # write the files for each simulation
     for i, input_vals in enumerate(suite_iter):
         input_vals = flatten_tuple(input_vals)
