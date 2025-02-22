@@ -60,15 +60,22 @@ def find_min_dt(CFL, nx, ny, nz, sf, single_inputs, u = 1.0, v = 1.0, w = 1.0):
         min_dt = min(min_dt, 1/16)  # 16 timesteps per frequency
     return min_dt
 
-def find_filter_width(nx, ny, nz, single_inputs):
-    """
-    filter delta/D = 3h/2D -> delta = 3h/2 since D = 1 and h = sqrt(dx^2 + dy^2 + dz^2)
-    """
+def get_h(nx, ny, nz, single_inputs):
     dx = single_inputs["sim"]["Lx"] / nx
     dy = single_inputs["sim"]["Ly"] / ny
     dz = single_inputs["sim"]["Lz"] / nz
-    filter_width = 3 * math.sqrt(dx**2 +dy**2 + dz**2) / 2
-    return filter_width
+    return math.sqrt(dx**2 +dy**2 + dz**2)
+
+
+def find_filter_width(single_inputs, nx = None, ny = None, nz = None, factor = 1.5):
+    """
+    filter delta/D = 3h/2D -> delta = 3h/2 since D = 1 and h = sqrt(dx^2 + dy^2 + dz^2)
+    """
+    nx = nx if (nx is not None) else single_inputs["sim"]["nx"]
+    ny = ny if (ny is not None) else single_inputs["sim"]["ny"]
+    nz = nz if (nz is not None) else single_inputs["sim"]["nz"]
+    h = get_h(nx, ny, nz, single_inputs)
+    return factor * h
 
 def update_inputs(new_inputs, curr_inputs):
     """Updates current (default) input values with user-provided new_inputs"""

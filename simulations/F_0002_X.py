@@ -29,7 +29,6 @@ single_inputs = dict(
     ),
     turb = dict(  # can only provide one turbine right now - update when needed
         # if not provided, default_inputs will be used
-        useCorrection = True,
         cT = 1.0,
         surge_freq = 0.0,
         surge_amplitude = 0.0,
@@ -45,12 +44,11 @@ single_inputs = dict(
     )
 )
 single_inputs["sim"]["dt"] = ju.find_min_dt(1.0, 256, 128, 128, 0.0, single_inputs, v = 0.0, w = 0.0)
-filterWidth = [
-    0.032,
-    ju.find_filter_width(single_inputs["sim"]["nx"],  single_inputs["sim"]["ny"],  single_inputs["sim"]["nz"], single_inputs),
-]
-varied_header = ["filterWidth"]
-varied_inputs = [(w, ) for w in filterWidth]
+factor_list = [0.25, 1.5, 2.75, 4.0]
+filterWidth = [ ju.find_filter_width(single_inputs, factor = f) for f in factor_list]
+useCorrection = [True, False]
+varied_inputs = itertools.product(useCorrection, filterWidth)
+varied_header = ["useCorrection", "filterWidth"]
 # write needed simulation files
 ju.write_padeops_suite(single_inputs, varied_inputs, varied_header = varied_header, default_input = default_inputs,
     sim_template = sim_template, run_template = run_template, turb_template = turb_template)
