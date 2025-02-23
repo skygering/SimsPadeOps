@@ -2,6 +2,10 @@ import itertools
 import jinja_sim_utils as ju
 from pathlib import Path
 
+# The purpose of this simulation was to study how different domain sizes in y and z
+# would affect the value of Cp, especially compared to the analytical value,
+# due to blockage causing speedups especially compared to the analytical value.
+
 sim_template = ju.TEMPLATE_PATH.joinpath("sim_template.jinja")
 turb_template = ju.TEMPLATE_PATH.joinpath("turb_template.jinja")
 run_template = ju.TEMPLATE_PATH.joinpath("run_template.jinja")
@@ -19,15 +23,20 @@ single_inputs = dict(
         Lx = 25,
         Ly = 10,
         Lz = 10,
+        nx = 256,
+        ny = 128,
+        nz = 128,
         tstop = 250,
         t_dataDump = 50,
     ),
     turb = dict(  # can only provide one turbine right now - update when needed
         # if not provided, default_inputs will be used
-        surge_freq = 0.15,
-        surge_amplitude = 0.25,
-        useCorrection = True,
         cT = 1.0,
+        surge_freq = 0.0,
+        surge_amplitude = 0.0,
+        pitch_amplitude = 0.0,
+        filterWidth = 0.032,
+        useCorrection = False,
     ),
     run = dict(
         # always need to provide the filepaths (no defaults)
@@ -38,26 +47,14 @@ single_inputs = dict(
         n_hrs = 4,
     )
 )
-
-# simulation setup parameters
-nx = [64, 128, 256, 512]
-ny = [32, 64, 128, 256]
-nz = [32, 64, 128, 256]
-
-# filter delta/D = 3h/2D -> delta = 3h/2 since D = 1 and h = sqrt(dx^2 + dy^2 + dz^2)
-filterWidth = [ju.find_filter_width(nx[i], ny[i], nz[i], single_inputs) for i, _ in enumerate(nx)]
-
-# moving turbine parameters
-cT = [1.0, 5.0, 10.0]
-sf = [0, 1, 1]
-sa = [0, 0.5, 0]
-pa = [0, 0, 5.0]
-
-varied_inputs = itertools.product(cT, itertools.zip_longest(nx, ny, nz, filterWidth), itertools.zip_longest(sf, sa, pa))
-# add appropriate dt as the first element for all iterations
-CFL = 0.8
-varied_inputs = [(ju.find_min_dt(CFL, vin[1][0], vin[1][1], vin[1][2], vin[2][0], single_inputs), ) + vin for vin in varied_inputs]
-varied_header = ["dt", "cT", "nx", "ny", "nz", "filterWidth", "surge_freq", "surge_amplitude", "pitch_amplitude"]
+single_inputs["sim"]["dt"] = ju.find_min_dt(1.0, 256, 128, 128, 0.0, single_inputs, v = 0.0, w = 0.0)
+y_dim = [15, 5, 10, 20]  # added in large first value to replace 2.5, which produced all NaNs
+z_dim = y_dim
+factor = 10.0 / 128.0  # middle of the road resolution used in F_0002_X simulations
+ny = [y / factor for y in y_dim]
+nz = ny
+varied_inputs = itertools.zip_longest(y_dim, z_dim, ny, nz)
+varied_header = ["Ly", "Lz", "ny", "nz"]
 # write needed simulation files
 ju.write_padeops_suite(single_inputs, varied_inputs, varied_header = varied_header, default_input = default_inputs,
     sim_template = sim_template, run_template = run_template, turb_template = turb_template)

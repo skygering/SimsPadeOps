@@ -2,7 +2,9 @@ import itertools
 import jinja_sim_utils as ju
 from pathlib import Path
 
-# TODO: Compare to F_0000_SU_X_plots
+# The purpose of this simulation was to study how different filter widths,
+# along with turning the correction calculation on and off, would effect the value of Cp,
+# especially compared to the analytical value.
 
 sim_template = ju.TEMPLATE_PATH.joinpath("sim_template.jinja")
 turb_template = ju.TEMPLATE_PATH.joinpath("turb_template.jinja")

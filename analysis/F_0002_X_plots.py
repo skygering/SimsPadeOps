@@ -29,11 +29,3 @@ ax1.legend(loc = "upper center", title = "Filter Width $\Delta$", fancybox = Tru
 plt.xlabel("Simulation Time")
 plt.ylabel("Cp")
 plt.savefig(os.path.join(sim_folder, 'static_diff_filter_power.png'))
-
-# fig, (ax1, ax2) = plt.subplots(nrows=2, sharex=True)
-
-# run_folder = os.path.join(sim_folder, "Sim_000" + str(1))
-# sim = pio.BudgetIO(run_folder, padeops = True, runid = 1)
-# print(sim.input_nml["input"])
-# print(sim.input_nml["windturbines"])
-
