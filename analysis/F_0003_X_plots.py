@@ -14,11 +14,11 @@ zoom = (50, 250)
 
 rows, fields = mplts.get_sim_varied_params(sim_folder)
 ids, Ly, Lz, ny, nz = zip(*rows)
-finished_sims_idx = [0, 2]
-mplts.plot_requested_turb_power(ax, sim_folder, finished_sims_idx, [Ly[i] for i in finished_sims_idx], zoom = zoom)
+sims_idx = [2, 0, 3]  # note Ly = Lz = 5 seems to have lower power
+mplts.plot_requested_turb_power(ax, sim_folder, sims_idx, [Ly[i] for i in sims_idx], zoom = zoom)
 mplts.plot_theoretical_turb_power(ax, 1.0, sim_folder, 0, zoom = zoom)
 
-ax.legend(loc = "upper right", title = "Ly and Lz [D]", fancybox = True)
+ax.legend(loc = "center", title = "Ly and Lz [D]", fancybox = True)
 plt.xlabel("Simulation Time")
 plt.ylabel("Cp")
 plt.savefig(os.path.join(sim_folder, 'static_diff_blockage_power.png'))
