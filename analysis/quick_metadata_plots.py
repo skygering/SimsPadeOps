@@ -121,9 +121,13 @@ def film_instantaneous_field(image_folder, fps = 10, video_name = "video.mp4"):
     clip.write_videofile(os.path.join(image_folder, video_name))
     return
 
-def plot_requested_turb_power(ax, folder, runs, labels, zoom = None):
-    for i, e in enumerate(runs):  # 
-        run_folder = os.path.join(folder, "Sim_000" + str(e))
+def plot_requested_turb_power(ax, folder, runs, labels, zoom = None, **kwargs):
+    for i, r in enumerate(runs):
+        run_str = "Sim_000"
+        if r > 9:
+            run_str = "Sim_00"
+        run_str += str(r)
+        run_folder = os.path.join(folder, run_str)
         sim = pio.BudgetIO(run_folder, padeops = True, runid = 1)
         dt = sim.input_nml["input"]["dt"]
         trans_tau = int(math.ceil(50 / dt) + 1)
@@ -134,10 +138,10 @@ def plot_requested_turb_power(ax, folder, runs, labels, zoom = None):
         time = [50 + dt * n for n in range(len(Cp))]
         if zoom is not None:
             time, Cp = au.x_zoom_plot(zoom, time, Cp)
-        ax.plot(time, Cp, label = labels[i], lw=0.7)
+        ax.plot(time, Cp, label = labels[i], **kwargs)
     return
 
-def plot_theoretical_turb_power(ax, CT, folder, run, zoom = None):
+def plot_theoretical_turb_power(ax, CT, folder, run, zoom = None, color = 'black', **kwargs):
     run_folder = os.path.join(folder, "Sim_000" + str(run))
     sim = pio.BudgetIO(run_folder, padeops = True, runid = 1)
     dt = sim.input_nml["input"]["dt"]
@@ -148,5 +152,5 @@ def plot_theoretical_turb_power(ax, CT, folder, run, zoom = None):
     Cp = [au.a_to_Cp(a)] * len(time)
     if zoom is not None:
         time, Cp = au.x_zoom_plot(zoom, time, Cp)
-    ax.plot(time, Cp, label = "Analytical Cp", lw=0.7)
+    ax.plot(time, Cp, label = "Analytical Cp", color = color, **kwargs)
     return

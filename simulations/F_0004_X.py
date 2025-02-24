@@ -46,22 +46,40 @@ single_inputs = dict(
         n_hrs = 4,
     )
 )
+# Varied values
+varied_header = ["cT", "nx", "ny", "nz", "dt", "filterWidth", "useCorrection"]
+tstop_CT1 = 150
+t_stop_CT4 = 350
 
 # simulation setup parameters
 cT = [1.0]
 nx = [64, 128, 256, 512]
 ny = [32, 64, 128, 256]
 nz = ny
-filterWidth = [ju.find_filter_width(single_inputs, nx = nx[i], ny = ny[i], nz = nz[i], factor = 1.0) for i in range(len(nx))]
 CFL = 1.0
 sf = 0.0
 dt = [ju.find_min_dt(CFL, nx[i], ny[i], nz[i], sf, single_inputs) for i in range(len(nx))]
+
+# filter width changes with grid size + corrected
+filterWidth = [ju.find_filter_width(single_inputs, nx = nx[i], ny = ny[i], nz = nz[i], factor = 1.0) for i in range(len(nx))]
 grid_convergence_change_filter = itertools.product(cT, itertools.zip_longest(nx, ny, nz, dt, filterWidth, [True] * len(nx)))
-varied_header = ["cT", "nx", "ny", "nz", "dt", "filterWidth", "useCorrection"]
+# constant filter width (0.08) + corrected
 grid_convergence_const_filter = itertools.product(cT, itertools.zip_longest(nx, ny, nz, dt, [0.08] * len(nx), [True] * len(nx)))
+# constant filter width (0.08) + NOT corrected
 grid_convergence_const_filter_no_correction = itertools.product(cT, itertools.zip_longest(nx, ny, nz, dt, [0.08] * len(nx), [False] * len(nx)))
+# examine (128, 64, 64) again since it is giving weird results - vary the factors for the filter width
+factor_list = [0.25, 1.0, 1.5, 2.75, 4.0]
+nf = len(factor_list)
+filterWidth = [ju.find_filter_width(single_inputs, nx = nx[1], ny = ny[1], nz = nz[1], factor = f) for f in factor_list]
+grid_convergence_med_corse_exploration = itertools.product(cT, itertools.zip_longest([nx[1]] * nf, [ny[1]] * nf, [nz[1]] * nf, [dt[1]] * nf, filterWidth, [True] * nf))
+# run the 0.08 filter width with corrections for CT' = 4.0 and 8.0
+grid_convergence_const_filter_varying_CT = itertools.product([4.0, 8.0], itertools.zip_longest(nx, ny, nz, dt, [0.08] * len(nx), [True] * len(nx)))
+
 # combine all of the above simulations
-varied_inputs = itertools.chain.from_iterable([grid_convergence_change_filter, grid_convergence_const_filter, grid_convergence_const_filter_no_correction])
+varied_inputs = itertools.chain.from_iterable([grid_convergence_change_filter, grid_convergence_const_filter,
+                                               grid_convergence_const_filter_no_correction, grid_convergence_med_corse_exploration,
+                                               grid_convergence_const_filter_varying_CT])
+
 # write needed simulation files
 ju.write_padeops_suite(single_inputs, varied_inputs, varied_header = varied_header, default_input = default_inputs,
-    sim_template = sim_template, run_template = run_template, turb_template = turb_template)
+    sim_template = sim_template, run_template = run_template, turb_template = turb_template, node_cap = 12)

@@ -9,7 +9,7 @@ data_path = Path(au.DATA_PATH)
 sim_folder = os.path.join(au.DATA_PATH, "F_0003_X_Files")
 
 fig, ax = plt.subplots()
-fig.suptitle("$C_p$ vs Simulation Time for Stationary Turbine ($C_T^' = 1$)")
+fig.suptitle("$C_p$ vs Simulation Time for Stationary Turbine\nwith Constant Grid Spacing ($C_T^' = 1$)")
 zoom = (50, 250)
 
 rows, fields = mplts.get_sim_varied_params(sim_folder)
