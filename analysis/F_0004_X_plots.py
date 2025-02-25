@@ -10,7 +10,7 @@ import numpy as np
 data_path = Path(au.DATA_PATH)
 sim_folder = os.path.join(au.DATA_PATH, "F_0004_X_Files")
 rows, fields = mplts.get_sim_varied_params(sim_folder)
-ids, CT, nx, ny, nz, dt, filterWidth, useCorrection = zip(*rows)
+ids, CT, tstop, nx, ny, nz, dt, filterWidth, useCorrection = zip(*rows)
 
 # fig, (ax1, ax2, ax3) = plt.subplots(ncols=3, sharey = True)
 # fig.set_figwidth(9)
@@ -55,31 +55,27 @@ ids, CT, nx, ny, nz, dt, filterWidth, useCorrection = zip(*rows)
 # plt.savefig(os.path.join(sim_folder, 'static_grid_convergence_power_filter_effects_coarse_example.png'))
 
 # New Figure
-fig, (ax1, ax2, ax3) = plt.subplots(ncols=3, sharey = True)
+fig, (ax1, ax2) = plt.subplots(ncols=2, sharey = True)
 fig.set_figwidth(9)
 fig.suptitle("$C_p$ vs Simulation Time for Stationary Turbine\nwith Lx = 25D and Ly = Lz = 10D ($\Delta = 0.08$)", y = 0.99)
 ax1.set_title("\n$C_T'$ = 1.0")
 ax2.set_title("\n$C_T'$ = 4.0")
-ax3.set_title("\n$C_T'$ = 8.0")
 ax1.set_xlabel("Simulation Time")
 ax2.set_xlabel("Simulation Time")
-ax3.set_xlabel("Simulation Time")
-plt.ylabel("Cp")
+ax1.set_ylabel("$C_p$")
 zoom = (50, 150)
 
-ct1_sims = [4, 5, 6]  # note the finest mesh it taking a long time to get off the queue
+ct1_sims = [4, 5, 6, 7]  # note the finest mesh it taking a long time to get off the queue
 ct2_sims = [17, 18, 19]
 ct3_sims = [21, 22, 23]
-
+zoom = (50, 150)
 mplts.plot_requested_turb_power(ax1, sim_folder, ct1_sims, [f"({nx[i]}, {ny[i]}, {nz[i]})" for i in ct1_sims], zoom = zoom)
 mplts.plot_theoretical_turb_power(ax1, 1.0, sim_folder, 0, zoom = zoom)
+ax1.legend(loc = "upper center", title = "$(nx, ny, nz)$", fancybox = True)
 
+zoom = (50, 150)
 mplts.plot_requested_turb_power(ax2, sim_folder, ct2_sims, [f"({nx[i]}, {ny[i]}, {nz[i]})" for i in ct2_sims], zoom = zoom)
 mplts.plot_theoretical_turb_power(ax2, 1.0, sim_folder, 0, zoom = zoom)
-
-mplts.plot_requested_turb_power(ax3, sim_folder, ct3_sims, [f"({nx[i]}, {ny[i]}, {nz[i]})" for i in ct3_sims], zoom = zoom)
-mplts.plot_theoretical_turb_power(ax3, 1.0, sim_folder, 0, zoom = zoom)
-ax3.legend(loc = "upper right", title = "$(nx, ny, nz)$", fancybox = True)
 
 fig.subplots_adjust(top=0.8)
 plt.savefig(os.path.join(sim_folder, 'static_grid_convergence_power_varied_CT.png'))

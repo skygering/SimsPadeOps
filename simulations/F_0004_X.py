@@ -49,7 +49,6 @@ single_inputs = dict(
 varied_header = ["cT", "tstop", "nx", "ny", "nz", "dt", "filterWidth", "useCorrection"]
 tstop_CT1 = [150]
 tstop_CT4 = 350
-tstop_CT8 = tstop_CT4
 
 # simulation setup parameters
 cT = [1.0]
@@ -73,7 +72,7 @@ nf = len(factor_list)
 filterWidth = [ju.find_filter_width(single_inputs, nx = nx[1], ny = ny[1], nz = nz[1], factor = f) for f in factor_list]
 grid_convergence_med_corse_exploration = itertools.product(itertools.zip_longest(cT, tstop_CT1), itertools.zip_longest([nx[1]] * nf, [ny[1]] * nf, [nz[1]] * nf, [dt[1]] * nf, filterWidth, [True] * nf))
 # run the 0.08 filter width with corrections for CT' = 4.0 and 8.0
-grid_convergence_const_filter_varying_CT = itertools.product(itertools.zip_longest([4.0, 8.0], [tstop_CT4, tstop_CT8]), itertools.zip_longest(nx, ny, nz, dt, [0.08] * len(nx), [True] * len(nx)))
+grid_convergence_const_filter_varying_CT = itertools.product(itertools.zip_longest([4.0], [tstop_CT4]), itertools.zip_longest(nx, ny, nz, dt, [0.08] * len(nx), [True] * len(nx)))
 
 # combine all of the above simulations
 varied_inputs = itertools.chain.from_iterable([grid_convergence_change_filter, grid_convergence_const_filter,
