@@ -66,8 +66,7 @@ ax1.set_ylabel("$C_p$")
 zoom = (50, 150)
 
 ct1_sims = [4, 5, 6, 7]  # note the finest mesh it taking a long time to get off the queue
-ct2_sims = [17, 18, 19]
-ct3_sims = [21, 22, 23]
+ct2_sims = [17, 18, 19, 20]
 zoom = (50, 150)
 mplts.plot_requested_turb_power(ax1, sim_folder, ct1_sims, [f"({nx[i]}, {ny[i]}, {nz[i]})" for i in ct1_sims], zoom = zoom)
 mplts.plot_theoretical_turb_power(ax1, 1.0, sim_folder, 0, zoom = zoom)
@@ -79,5 +78,3 @@ mplts.plot_theoretical_turb_power(ax2, 1.0, sim_folder, 0, zoom = zoom)
 
 fig.subplots_adjust(top=0.8)
 plt.savefig(os.path.join(sim_folder, 'static_grid_convergence_power_varied_CT.png'))
-
-

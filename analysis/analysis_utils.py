@@ -53,6 +53,32 @@ def x_zoom_plot(zoom, xs, ys):
     e_i = find_nearest(xs, zoom[1])
     return xs[s_i : e_i + 1], ys[s_i : e_i + 1]
 
+def avg_cp_info(sim_nums, sim_folder, peak = False, trough = False):
+    cp_sol = [0.0 for _ in sim_nums]
+    cells = [0.0 for _ in sim_nums]
+    for i, e in enumerate(sim_nums):
+        run_str = "Sim_000" if e < 10 else "Sim_00"
+        run_str += str(e)
+        run_folder = os.path.join(sim_folder, run_str)
+        sim = pio.BudgetIO(run_folder, padeops = True, runid = e)
+        dt = sim.input_nml["input"]["dt"]
+        cells[i] = sim.input_nml["input"]["nx"] * sim.input_nml["input"]["ny"] * sim.input_nml["input"]["nz"]
+        trans_tau = int(math.ceil(50 / dt) + 1)
+        power = sim.read_turb_power("all", turb=1)[trans_tau:]
+        Cp = [power_to_Cp(p) for p in power]
+        if peak:
+            cp_peak_idx, _ = find_peaks(Cp)
+            cp_peak_vals = [Cp[pi] for pi in cp_peak_idx]
+            cp_sol[i] = statistics.mean(cp_peak_vals)
+        elif trough:
+            cp_trough_idx, _ = find_peaks([-c for c in Cp])
+            cp_trough_vals = [Cp[ti] for ti in cp_trough_idx]
+            cp_sol[i] = statistics.mean(cp_trough_vals)
+        else:
+            cp_sol[i] = statistics.mean(Cp)
+    return cp_sol, cells
+
+
 def plot_gci_cp(sim_nums, sim_folder, plot_title = None, zoom = None, to_plot = True, gci = False, peak = False, trough = False):
     fig, ax = plt.subplots(figsize=(9, 3))
     labels = ["coarse", "medium", "fine"]

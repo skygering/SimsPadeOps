@@ -13,6 +13,7 @@
         "turb_dirname" : "turbine_dir",
         "t_dataDump" : 1000,
         "useDynamicTurbine": true,
+        "ADM_Type" : 5,
         "RunID" : 1
     },
     "turb": {

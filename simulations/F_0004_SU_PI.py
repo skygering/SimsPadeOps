@@ -66,16 +66,15 @@ pitch_amplitude = [5.0]
 factor_list = [0.3, 1.5, 2.75]
 nf = len(factor_list)
 filterWidth = [ju.find_filter_width(single_inputs, nx = nx[1], ny = ny[1], nz = nz[1], factor = f) for f in factor_list]
-grid_convergence_med_corse_exploration = itertools.product([1.0], itertools.zip_longest([nx[1]] * nf, [ny[1]] * nf, [nz[1]] * nf, [dt[1]] * nf, filterWidth, [True] * nf), itertools.zip_longest(surge_amplitude, pitch_amplitude))
+varied_filter_corrections_med_coarse_exploration = itertools.product([1.0], itertools.zip_longest([nx[1]] * nf, [ny[1]] * nf, [nz[1]] * nf, [dt[1]] * nf, filterWidth, [True] * nf), itertools.zip_longest(surge_amplitude, pitch_amplitude))
 # explore pitching (256, 128, 128) for CT = 1.0
-factor_list = [0.3, 1.5, 2.75]
-nf = len(factor_list)
-filterWidth = [ju.find_filter_width(single_inputs, nx = nx[2], ny = ny[2], nz = nz[2], factor = f) for f in factor_list]
-grid_convergence_med_fine_exploration = itertools.product([1.0], itertools.zip_longest([nx[2]] * nf, [ny[2]] * nf, [nz[2]] * nf, [dt[2]] * nf, filterWidth, [True] * nf), itertools.zip_longest(surge_amplitude, pitch_amplitude))
+varied_filter_no_corrections_med_coarse_exploration = itertools.product([1.0], itertools.zip_longest([nx[1]] * nf, [ny[1]] * nf, [nz[1]] * nf, [dt[1]] * nf, filterWidth, [False] * nf), itertools.zip_longest(surge_amplitude, pitch_amplitude))
+set_filter_correction_both_true_false = itertools.product([1.0], itertools.zip_longest([nx[1]] * 2, [ny[1]] * 2, [nz[1]] * 2, [dt[1]] * 2, [0.08] * 2, [True, False]), itertools.zip_longest(surge_amplitude, pitch_amplitude))
 
 varied_inputs = itertools.chain.from_iterable([const_filter_varied_ct_all_setups,
-                                             grid_convergence_med_corse_exploration,
-                                             grid_convergence_med_fine_exploration])
+                                             varied_filter_corrections_med_coarse_exploration,
+                                             varied_filter_no_corrections_med_coarse_exploration,
+                                             set_filter_correction_both_true_false])
 # for v in varied_inputs:
 #     print(v)                                   
 
