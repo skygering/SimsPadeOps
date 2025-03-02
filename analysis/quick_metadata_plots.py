@@ -87,16 +87,26 @@ def plot_suite_power(suite_folder, save = True, figsize = (9, 3)):
         plt.savefig(os.path.join(suite_folder, 'suite_cp.png'))
     return fig, ax
 
-def _plot_instantaneous_field(save_folder, sim, *, tidx, field, xlim = [-5, 20], ylim =  [-5, 5], zlim = 0):
+def _plot_instantaneous_field(save_folder, sim, *, tidx, field, xlim = [-5, 20], ylim =  [-5, 5], zlim = 0, suptitle = ""):
     ds = sim.slice(field_terms=[field], xlim = xlim, ylim = ylim, zlim = zlim, tidx = tidx)
+    dims = ds.sizes
+    ndims = len(dims)
     fig, ax = plt.subplots()
-    ds[field].imshow(ax = ax)
+    if ndims == 1:
+        dim_name = list(ds.sizes.keys())[0]
+        ax.plot(ds[dim_name], ds[field])
+        ax.set_xlabel(dim_name + '/D')
+        ax.set_ylabel(field)
+    elif ndims == 2:
+        ds[field].imshow(ax = ax)
+    plt.suptitle(suptitle)
     plt.title("TIDX: " + str(tidx))
     plt.savefig(os.path.join(save_folder, field + '_' + str(tidx) + '.png'))
     plt.close()
     return
 
-def plot_instantaneous_field(run_folder, runid, tidx = 0, field = "u", **kwargs):
+def plot_instantaneous_field(sim_folder, runid, tidx = 0, field = "u", **kwargs):
+    run_folder = au.get_run_folder(sim_folder, runid)
     sim = pio.BudgetIO(run_folder, padeops = True, runid = runid, normalize_origin="turbine")
     save_folder = run_folder
     if tidx == "all":
@@ -123,11 +133,7 @@ def film_instantaneous_field(image_folder, fps = 10, video_name = "video.mp4"):
 
 def plot_requested_turb_power(ax, folder, runs, labels, zoom = None, **kwargs):
     for i, r in enumerate(runs):
-        run_str = "Sim_000"
-        if r > 9:
-            run_str = "Sim_00"
-        run_str += str(r)
-        run_folder = os.path.join(folder, run_str)
+        run_folder = au.get_run_folder(folder, r)
         sim = pio.BudgetIO(run_folder, padeops = True, runid = 1)
         dt = sim.input_nml["input"]["dt"]
         trans_tau = int(math.ceil(50 / dt) + 1)

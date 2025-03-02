@@ -10,7 +10,7 @@ from pathlib import Path
 sim_template = ju.TEMPLATE_PATH.joinpath("sim_template.jinja")
 turb_template = ju.TEMPLATE_PATH.joinpath("turb_template.jinja")
 run_template = ju.TEMPLATE_PATH.joinpath("run_template.jinja")
-default_inputs = ju.DEFAULTS_PATH.joinpath("floating_defaults.json")
+default_inputs = ju.DEFAULTS_PATH.joinpath("fixed_defaults.json")
 
 # file name based on current script name
 curr_script_name = Path(__file__).with_suffix('').name

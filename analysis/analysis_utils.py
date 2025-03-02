@@ -11,13 +11,19 @@ import statistics
 
 DATA_PATH = os.environ['SCRATCH'] + "/Data/"
 
-
 def arg_parser(arg_list = ["write_dir", "filename"]):
     parser = argparse.ArgumentParser()
     for a in arg_list:
         parser.add_argument(a)
     args = parser.parse_args()
     return args
+
+def get_run_folder(sim_folder, runid):
+    run_str = "Sim_000"
+    if runid > 9:
+        run_str = "Sim_00"
+    run_str += str(runid)
+    return os.path.join(sim_folder, run_str)
 
 def power_to_Cp(power, uinf = 1, rho = 1):
     """

@@ -49,7 +49,7 @@ temporal = ["small", "large"]
 # plt.xlabel("Simulation Time")
 # plt.ylabel("Cp")
 # plt.savefig(os.path.join(sim_folder_2, 'pitching_suite_power.png'))
-run_folder = "/scratch/10264/sgering/Data/F_0002_SU_PI_X_Files/Sim_0001"
+run_folder = au.get_run_folder(sim_folder_2, 1)
 save_folder = os.path.join(run_folder, "u_plots")
-# save_folder = mplts.plot_instantaneous_field(run_folder, 1, tidx = "all", field = "u")
+# save_folder = mplts.plot_instantaneous_field(sim_folder_2, 1, tidx = "all", field = "u")
 mplts.film_instantaneous_field(save_folder)
