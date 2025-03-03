@@ -79,6 +79,7 @@ ct2_sims = [17, 18, 19, 20]
 # fig.subplots_adjust(top=0.8)
 # plt.savefig(os.path.join(sim_folder, 'static_grid_convergence_power_varied_CT.png'))
 
+# Plot the u velocity across the rotor
 field = "u"
 for runid in ct2_sims:
     save_folder = mplts.plot_instantaneous_field(sim_folder, runid, tidx = "all", field = "u", xlim = 0)

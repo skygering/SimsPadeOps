@@ -87,7 +87,7 @@ def plot_suite_power(suite_folder, save = True, figsize = (9, 3)):
         plt.savefig(os.path.join(suite_folder, 'suite_cp.png'))
     return fig, ax
 
-def _plot_instantaneous_field(save_folder, sim, *, tidx, field, xlim = [-5, 20], ylim =  [-5, 5], zlim = 0, suptitle = ""):
+def _plot_instantaneous_field(save_folder, sim, *, tidx, field, xlim = [-5, 20], ylim =  [-5, 5], zlim = 0, suptitle = "", set_plot_lims = False, plot_ylim = [0, 1.2]):
     ds = sim.slice(field_terms=[field], xlim = xlim, ylim = ylim, zlim = zlim, tidx = tidx)
     dims = ds.sizes
     ndims = len(dims)
@@ -99,6 +99,8 @@ def _plot_instantaneous_field(save_folder, sim, *, tidx, field, xlim = [-5, 20],
         ax.set_ylabel(field)
     elif ndims == 2:
         ds[field].imshow(ax = ax)
+    if set_plot_lims:
+        ax.set_ylim(plot_ylim)
     plt.suptitle(suptitle)
     plt.title("TIDX: " + str(tidx))
     plt.savefig(os.path.join(save_folder, field + '_' + str(tidx) + '.png'))
