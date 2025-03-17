@@ -27,14 +27,14 @@ single_inputs = dict(
         CFL = -1.0,
         t_dataDump = 50,
         ADM_Type = 6,  # takes in CT, but turbine can't move
-        tstop = 150,
-        # TODO: calculate dt so that it "matches" other simulatuions
+        tstop = 400,
     ),
     turb = dict(  # can only provide one turbine right now - update when needed
         # if not provided, default_inputs will be used
-        # TODO: set CT, filterWidth, useCorrection
-        filterWidth = 0.08,
-        useCorrection = True
+        useCorrection = False,
+        surge_freq = 0.0,
+        surge_amplitude = 0.0,
+        pitch_amplitude = 0.0,
     ),
     run = dict(
         # always need to provide the filepaths (no defaults)
@@ -46,18 +46,24 @@ single_inputs = dict(
     )
 )
 # Varied values
-cT = [1.0] #[1.0, 1.2, 1.5, 4.0]
+cT = [1.0, 1.5, 1.2]
 
 # simulation setup parameters
-nx = [128]
-ny = [64]
+nx = [128, 256, 512]
+ny = [64, 128, 256]
 nz = ny
+factor = 2.5
+filterWidth = [ju.find_filter_width(single_inputs, nx = nx[i], ny = ny[i], nz = nz[i], factor = factor) for i in range(len(nx))]
+
 CFL = 1.0
 sf = 0.0
 dt = [ju.find_min_dt(CFL, nx[i], ny[i], nz[i], sf, single_inputs) for i in range(len(nx))]
 
-varied_header = ["cT", "nx", "ny", "nz", "dt"]
-varied_inputs = itertools.product(cT, itertools.zip_longest(nx, ny, nz, dt))
+varied_header = ["cT", "nx", "ny", "nz", "dt", "filterWidth"]
+varied_inputs = itertools.product(cT, itertools.zip_longest(nx, ny, nz, dt, filterWidth))
+
+# for v in varied_inputs:
+#     print(v)   
 # # write needed simulation files
 ju.write_padeops_suite(single_inputs, varied_inputs, varied_header = varied_header, default_input = default_inputs,
     sim_template = sim_template, run_template = run_template, turb_template = turb_template, node_cap = 12)

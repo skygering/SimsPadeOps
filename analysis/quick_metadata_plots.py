@@ -115,7 +115,10 @@ def plot_instantaneous_field(sim_folder, runid, tidx = 0, field = "u", **kwargs)
         save_folder = os.path.join(run_folder, field + "_plots")
         Path(save_folder).mkdir(parents=True, exist_ok=True)
         for tidx in sim.unique_tidx():
-            _plot_instantaneous_field(save_folder, sim, tidx = tidx, field = field, **kwargs) 
+            try:  # if simulation died early -> 
+                _plot_instantaneous_field(save_folder, sim, tidx = tidx, field = field, **kwargs)
+            except:
+                return save_folder
     else:
         _plot_instantaneous_field(run_folder, sim, tidx = tidx, field = field, **kwargs)
     return save_folder
@@ -141,16 +144,40 @@ def plot_requested_turb_power(ax, folder, runs, labels, zoom = None, **kwargs):
         trans_tau = int(math.ceil(50 / dt) + 1)
         # TODO: ask Kirby if default should be "all", rather than None
         # as it was confusing and when it is saved as a file first, they all printed I think?
-        power = sim.read_turb_power("all", turb=1)[trans_tau:]
-        Cp = [au.power_to_Cp(p) for p in power]
-        time = [50 + dt * n for n in range(len(Cp))]
-        if zoom is not None:
-            time, Cp = au.x_zoom_plot(zoom, time, Cp)
-        ax.plot(time, Cp, label = labels[i], **kwargs)
+        try:
+            power = sim.read_turb_power("all", turb=1)[trans_tau:]
+            Cp = [au.power_to_Cp(p) for p in power]
+            time = [50 + dt * n for n in range(len(Cp))]
+            if zoom is not None:
+                time, Cp = au.x_zoom_plot(zoom, time, Cp)
+            ax.plot(time, Cp, label = labels[i], **kwargs)
+        except:
+            continue
     return
 
+def plot_requested_turb_u_velocity(ax, folder, runs, labels, zoom = None, induced = False, u_infty = 1, **kwargs):
+    for i, r in enumerate(runs):
+        run_folder = au.get_run_folder(folder, r)
+        sim = pio.BudgetIO(run_folder, padeops = True, runid = 1)
+        dt = sim.input_nml["input"]["dt"]
+        trans_tau = int(math.ceil(50 / dt) + 1)
+        # TODO: ask Kirby if default should be "all", rather than None
+        # as it was confusing and when it is saved as a file first, they all printed I think?
+        try:
+            u_vel = sim.read_turb_uvel("all", turb=1)[trans_tau:]
+            if induced:
+                u_vel = [u_infty - u for u in u_vel]
+            time = [50 + dt * n for n in range(len(u_vel))]
+            if zoom is not None:
+                time, u_vel = au.x_zoom_plot(zoom, time, u_vel)
+            ax.plot(time, u_vel, label = labels[i], **kwargs)
+        except:
+            continue
+    return
+
+
 def plot_theoretical_turb_power(ax, CT, folder, run, zoom = None, color = 'black', **kwargs):
-    run_folder = os.path.join(folder, "Sim_000" + str(run))
+    run_folder = au.get_run_folder(folder, run)
     sim = pio.BudgetIO(run_folder, padeops = True, runid = 1)
     dt = sim.input_nml["input"]["dt"]
     trans_tau = int(math.ceil(50 / dt) + 1)
@@ -160,5 +187,5 @@ def plot_theoretical_turb_power(ax, CT, folder, run, zoom = None, color = 'black
     Cp = [au.a_to_Cp(a)] * len(time)
     if zoom is not None:
         time, Cp = au.x_zoom_plot(zoom, time, Cp)
-    ax.plot(time, Cp, label = "Analytical Cp", color = color, **kwargs)
+    ax.plot(time, Cp, label = "Analytical $C_p$", color = color, **kwargs)
     return
