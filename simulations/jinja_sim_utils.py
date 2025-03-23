@@ -81,6 +81,7 @@ def update_inputs(new_inputs, curr_inputs):
     """Updates current (default) input values with user-provided new_inputs"""
     for name, val in new_inputs.items():
         curr_inputs[name] = val
+    return
 
 def fill_template(inputs, template_path, file_path):
     with open(template_path, "r") as f:
@@ -89,12 +90,15 @@ def fill_template(inputs, template_path, file_path):
     out = template.render(inputs)
     with open(file_path, "w") as f:
         f.write(out)
+    return
 
 def write_sim(new_inputs, curr_inputs, template_path, out_path, quiet):
     update_inputs(new_inputs, curr_inputs)
-    fill_template(curr_inputs, template_path, out_path.joinpath(curr_inputs["sim_file_name"]))
+    sim_file_path = out_path.joinpath(curr_inputs["sim_file_name"])
+    fill_template(curr_inputs, template_path, sim_file_path)
     if not quiet:
         print("\tDone writing simulation .dat file.")
+    return sim_file_path
 
 def write_turb(new_inputs, curr_inputs, template_path, out_turb_path, quiet, n_turbs):
     """Writes a turbine file by copying ActuatorDisk_0001_input.j2"""
@@ -105,9 +109,9 @@ def write_turb(new_inputs, curr_inputs, template_path, out_turb_path, quiet, n_t
     fill_template(curr_inputs, template_path, file_path)
     if not quiet:
         print(f"\tDone writing ActuatorDisk_{n_turbs:04d}_input.inp file")
+    return
 
 def write_run(new_inputs, curr_inputs, template_path, out_path, quiet, n_nodes, node_cap):
-    # TODO: set the right file path for the .e and .o files so I don't need to CD into them
     update_inputs(new_inputs, curr_inputs)
     curr_inputs["inputdir"] = str(out_path)  # add the output path for input files for template
     curr_inputs["n_hrs"] = int(curr_inputs["n_hrs"])
@@ -116,9 +120,46 @@ def write_run(new_inputs, curr_inputs, template_path, out_path, quiet, n_nodes, 
     fill_template(curr_inputs, template_path, out_path.joinpath(curr_inputs["run_file_name"]))
     if not quiet:
         print("\tDone writing run file.")
+    return
+
+def write_hit(new_inputs, curr_inputs, sim_inputs, template_path, out_path, quiet):
+    # Match needed parameters to sim parameters
+    new_inputs["outputdir"] = sim_inputs["outputdir"]
+    # HIT box must be a square and must have the same Ly, Lz, ny, and nz as the main simulation
+    # Within the HIT box, Lx = Ly = Lz and nx = ny = nz as well
+    assert sim_inputs["ny"] == sim_inputs["nz"], "HIT box requires that simulation has ny = nz"
+    new_inputs["nx"] = sim_inputs["ny"]
+    new_inputs["ny"] = sim_inputs["ny"]
+    new_inputs["nz"] = sim_inputs["ny"]
+    new_inputs["Lx"] = sim_inputs["Ly"]
+    new_inputs["Ly"] = sim_inputs["Ly"]
+    new_inputs["Lz"] = sim_inputs["Ly"]
+    # The resolution in the x-direction of the HIT box must be an integer multiple of the x-direction resolution in the main simulation
+    assert (new_inputs["Lx"] / new_inputs["nx"]) % (sim_inputs["Lx"] / sim_inputs["nx"]) == 0, "X-resolution of HIT box must be an integer multiple of simulation x-resolution"
+    # HIT box should have the same timestepping scheme as regular simulation
+    new_inputs["tstop"] = sim_inputs["tstop"]
+    new_inputs["dt"] = sim_inputs["dt"]
+    new_inputs["CFL"] = sim_inputs["CFL"]
+    # HIT box should have the same RunID
+    new_inputs['hit']["RunID"] = sim_inputs["RunID"]
+    # update curr_inputs with new_inputs
+    update_inputs(new_inputs, curr_inputs)
+    hit_file_path = out_path.joinpath(curr_inputs["hit_file_name"])
+    fill_template(curr_inputs, template_path, hit_file_path)
+    if not quiet:
+        print("\tDone writing HIT input file.")
+    return hit_file_path
+
+def write_interaction(new_inputs, curr_inputs, template_path, out_path, quiet):
+    update_inputs(new_inputs, curr_inputs)
+    interactions_file_path = out_path.joinpath(curr_inputs["interaction_file_name"])
+    fill_template(curr_inputs, template_path, interactions_file_path)
+    if not quiet:
+        print("\tDone writing interactions input file.")
+    return interactions_file_path
 
 def write_padeops_files(new_inputs, *, default_input,
-    sim_template, run_template, turb_template = None,
+    sim_template, run_template, turb_template = None, hit_template = None, interactions_template = None,
     n_turbs = 1, quiet = False, node_cap = 128
 ):
     # load default parameters
@@ -134,10 +175,19 @@ def write_padeops_files(new_inputs, *, default_input,
         curr_inputs["sim"]["turb_dirname"] = turb_path
         write_turb(new_inputs["turb"], curr_inputs["turb"], Path(turb_template), turb_path, quiet, n_turbs)
     # load sim template and write simulation's .dat file
-    write_sim(new_inputs["sim"], curr_inputs["sim"], Path(sim_template), inputdir, quiet)
+    ad_file = write_sim(new_inputs["sim"], curr_inputs["sim"], Path(sim_template), inputdir, quiet)
+    run_inputfile = ad_file
+    # load HIT template and write HIT's .dat files (if there should be turbulence)
+    if "hit" in new_inputs:
+        hit_file = write_hit(new_inputs["hit"], curr_inputs["hit"], new_inputs["sim"], Path(hit_template), inputdir, quiet)
+        new_inputs["interactions"]["HIT_InputFile"] = hit_file
+        new_inputs["interactions"]["AD_InputFile"] = ad_file
+        interactions_file = write_interaction(new_inputs["interactions"], curr_inputs["interactions"], Path(interactions_template), inputdir, quiet)
+        run_inputfile = interactions_file
     # load run template and write .sh file to run simulation
-    write_run(new_inputs["run"], curr_inputs["run"], Path(run_template), inputdir,
-              quiet, get_nnodes(curr_inputs["sim"]), node_cap)
+    new_inputs["run"]["inputfile"] = run_inputfile
+    write_run(new_inputs["run"], curr_inputs["run"], Path(run_template), inputdir, quiet, get_nnodes(curr_inputs["sim"]), node_cap)
+    return
 
 def _prep_padeops_suite_inputs(varied_inputs, varied_header, nested, default_input):
     row_header = ["id"]

@@ -1,0 +1,21 @@
+&concurrent
+HIT_InputFile                 = "{{ HIT_InputFile }}"
+AD_InputFile                  = "{{ AD_InputFile }}"
+InflowSpeed                   = 1.d0
+k_bandpass_left               = 4.0d0
+k_bandpass_right              = 128.d0
+TI_target                     = {{ "%.3f"|format(TI_target|float)}}d0 	 ! TI target value. Set to -1 to disable TI controller
+TI_xloc                       = {{ "%0.8f"|format(TI_xloc|float) }}d0    ! x-location to compute TI from simulation, if TI_target is used
+TI_fact                       = {{ "%.3f"|format(TI_fact|float)}}d0      ! TI scaling factor for fringe targets. Set to -1 to disable.
+freeze_HIT                    = .false.  ! Freezes HIT turbulence
+/
+/
+&FILTER_INFO
+applyfilters = .FALSE. 
+nfilters     = 2
+fof_dir      = "/projects/windFlowModeling/PadeOps/HIT_Interact/filter_visualizations/"
+tid_FIL_FullField = 75
+tid_FIL_Planes = 4
+filoutdir    = "/scratch/globus/aghate/filter_visualization/ad_data" 
+/
+/

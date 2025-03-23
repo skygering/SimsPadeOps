@@ -10,7 +10,6 @@ from numpy import std
 import numpy as np
 import pandas as pd
 from matplotlib.lines import Line2D
-import matplotlib.transforms as mtrans
 
 data_path = Path(au.DATA_PATH)
 # all simulation folders used
@@ -18,6 +17,8 @@ sim_4_X_folder = os.path.join(au.DATA_PATH, "F_0004_X_Files")
 sim_4_SU_PI_folder = os.path.join(au.DATA_PATH, "F_0004_SU_PI_Files")
 sim_5_all_folder = os.path.join(au.DATA_PATH, "F_0005_X_SU_PI_Files")
 sim_6_all_folder = os.path.join(au.DATA_PATH, "F_0006_X_SU_PI_Files")
+sim_8_all_folder = os.path.join(au.DATA_PATH, "F_0008_X_SU_PI_Files")
+data_fn = os.path.join(sim_6_all_folder, 'collected_runs.csv')
 
 # # go through data and collect
 # df = pd.DataFrame(columns=['marker', 'nx', 'filter', 'filterFactor', 'useCorrection', 'CT_prime',
@@ -26,7 +27,7 @@ sim_6_all_folder = os.path.join(au.DATA_PATH, "F_0006_X_SU_PI_Files")
 #                            'std_CT', 'std_an', 'std_Cp',
 #                            'skewness_CT', 'skewness_an', 'skewness_Cp',
 #                            'kurtosis_CT', 'kurtosis_an', 'kurtosis_Cp'])
-# folders = (sim_4_X_folder, sim_4_SU_PI_folder, sim_5_all_folder, sim_6_all_folder)
+# folders = (sim_4_X_folder, sim_4_SU_PI_folder, sim_5_all_folder, sim_6_all_folder, sim_8_all_folder)
 # row = 0
 # for (k, folder) in enumerate(folders):
 #     rows, fields = mplts.get_sim_varied_params(folder)
@@ -44,10 +45,14 @@ sim_6_all_folder = os.path.join(au.DATA_PATH, "F_0006_X_SU_PI_Files")
 #         print("C")
 #         ids, dt, cT, surge_freq, surge_amplitude, pitch_amplitude, nx, ny, nz, filterWidth = zip(*rows)
 #         useCorrection = [False] * len(ids)
-#     else:
+#     elif k == 3:
 #         print("D")
 #         ids, dt, cT, surge_freq, surge_amplitude, pitch_amplitude, nx, ny, nz, filterWidth = zip(*rows)
 #         useCorrection = [False] * len(ids)
+#     else: 
+#         ids, dt, nx, ny, nz, filterWidth, cT, surge_freq, surge_amplitude, pitch_amplitude = zip(*rows)
+#         useCorrection = [True] * len(ids)
+
 
 #     # get data from runs
 #     for (i, id_str) in enumerate(ids):
@@ -64,8 +69,8 @@ sim_6_all_folder = os.path.join(au.DATA_PATH, "F_0006_X_SU_PI_Files")
 #         else:
 #             h = ((25 / float(nx[i]))**2 + 2 * (10 / float(ny[i]))**2)**(1/2)
 #             filter_width = float(filterWidth[i])
-#             if useCorrection[i] and filter_width > 0.1:
-#                 continue
+#             # if useCorrection[i] and filter_width > 0.1:
+#             #     continue
 #             Cp_vals = [au.power_to_Cp(p) for p in power]
 #             an_vals = [au.vel_to_a(u) for u in uvel]
 #             cT_prime_val = float(cT[i])
@@ -89,9 +94,7 @@ sim_6_all_folder = os.path.join(au.DATA_PATH, "F_0006_X_SU_PI_Files")
 #             kurtosis_info = [cT_stats.kurtosis, an_stats.kurtosis, Cp_stats.kurtosis]
 #             df.loc[row] = [marker, float(nx[i]), filter_width, filter_factor, useCorrection[i], cT_prime_val] + mean_info + variance_info + std_info + skewness_info + kurtosis_info
 #             row += 1
-
 # # saving the dataframe
-data_fn = os.path.join(sim_6_all_folder, 'collected_runs.csv')
 # df.to_csv(data_fn)
 
 
@@ -146,15 +149,23 @@ def four_plot(df, title, an_key, CT_key, Cp_key, save_fn, add_classical = False,
         marker_size = sizes[i]
         j = np.where(unique_factors == row["filterFactor"])[0][0]
         marker_color = colors[j]
+        if row["useCorrection"]:
+            edgecolor = 'r'
+            edgewidth = 2
+            alpha = 0.5
+        else:
+            edgecolor = 'face'
+            edgewidth = 0
+            alpha = 0.5
         # Columns in row: ['marker', 'nx', 'filter', 'filterFactor','CT_prime','mean_CT','mean_an','mean_Cp']
         # plot CT vs an - size based off of resolution, color based off of filter, marker based off of turbine movement
-        ax0.scatter(row[an_key], row[CT_key], marker = row["marker"], s = marker_size, color = marker_color, alpha=0.5)
+        ax0.scatter(row[an_key], row[CT_key], marker = row["marker"], s = marker_size, color = marker_color, edgecolors = edgecolor, linewidth = edgewidth, alpha=alpha)
         # plot CT vs CT' - size based off of resolution, color based off of filter, marker based off of turbine movement
-        ax1.scatter(row["CT_prime"], row[CT_key], marker = row["marker"], s = marker_size, color = marker_color, alpha=0.5)
+        ax1.scatter(row["CT_prime"], row[CT_key], marker = row["marker"], s = marker_size, color = marker_color, edgecolors = edgecolor, linewidth = edgewidth, alpha=alpha)
         # plot Cp vs an - size based off of resolution, color based off of filter, marker based off of turbine movement
-        ax2.scatter(row[an_key], row[Cp_key], marker = row["marker"], s = marker_size, color = marker_color, alpha=0.5)
+        ax2.scatter(row[an_key], row[Cp_key], marker = row["marker"], s = marker_size, color = marker_color, edgecolors = edgecolor, linewidth = edgewidth, alpha=alpha)
         # plot Cp vs CT' - size based off of resolution, color based off of filter, marker based off of turbine movement
-        ax3.scatter(row["CT_prime"], row[Cp_key], marker = row["marker"], s = marker_size, color = marker_color, alpha=0.5)
+        ax3.scatter(row["CT_prime"], row[Cp_key], marker = row["marker"], s = marker_size, color = marker_color, edgecolors = edgecolor, linewidth = edgewidth, alpha=alpha)
 
         if add_classical:
             # classical momentum values for statinary turbine
@@ -168,8 +179,8 @@ def four_plot(df, title, an_key, CT_key, Cp_key, save_fn, add_classical = False,
             ax3.plot(ctp_vals, classical_cp, c = 'k')
 
         if extra_plots:
-            ax4.scatter(row["mean_an"], row[Cp_key], marker = row["marker"], s = marker_size, color = marker_color, alpha=0.5)
-            ax5.scatter(row["mean_Cp"], row[an_key],  marker = row["marker"], s = marker_size, color = marker_color, alpha=0.5)
+            ax4.scatter(row["mean_an"], row[Cp_key], marker = row["marker"], s = marker_size, color = marker_color, edgecolors = edgecolor, alpha=0.5)
+            ax5.scatter(row["mean_Cp"], row[an_key],  marker = row["marker"], s = marker_size, color = marker_color, edgecolors = edgecolor, alpha=0.5)
 
         # shape legend
         shape_elements = [Line2D([0], [0], marker='.', color='w', label='Stationary', markerfacecolor='tab:gray', markersize=12),
@@ -192,8 +203,9 @@ def four_plot(df, title, an_key, CT_key, Cp_key, save_fn, add_classical = False,
     plt.close()
 
 df = pd.read_csv(data_fn)
-correction_off_df = df[df['useCorrection'] == False]
-df = correction_off_df
+# only includes ONE final run with correction on to see the changes
+df = df[(df['useCorrection'] == False) | ((df['useCorrection'] == True) & (df['filterFactor'] == 1.5) & (df['nx'] == 256))]
+df = df[df['filterFactor'] != 0.3]
 stationary_df = df[df['marker'] == "o"]
 surging_df = df[df['marker'] == "s"]
 pitching_df = df[df['marker'] == "^"]
@@ -210,12 +222,12 @@ four_plot(stationary_df, "Stationary Turbine - Means for Simulations", "mean_an"
 four_plot(stationary_df, "Stationary Turbine - Standard Deviation for Simulations", "std_an", "std_CT", "std_Cp", 'stationary_std_target_grid_search.png', extra_plots = True, ax_label_type = "STD")
 # four_plot(stationary_df, "Stationary Turbine - Kurtosis for Simulations", "kurtosis_an", "kurtosis_CT", "kurtosis_Cp", 'stationary_kurtosis_target_grid_search.png', extra_plots = True, ax_label_type = "Kurtosis")
 
-four_plot(surging_df, "Surging Turbine - Means for Simulations", "mean_an", "mean_CT", "mean_Cp", 'surging_mean_target_grid_search.png', extra_plots = True, ax_label_type = "Mean")
+four_plot(surging_df, "Surging Turbine - Means for Simulations", "mean_an", "mean_CT", "mean_Cp", 'surging_mean_target_grid_search.png', add_classical = True, ax_label_type = "Mean")
 four_plot(surging_df, "Surging Turbine - Skewness for Simulations", "skewness_an", "skewness_CT", "skewness_Cp", 'surging_skewness_target_grid_search.png', extra_plots = True, ax_label_type = "Skew")
 four_plot(surging_df, "Surging Turbine - Standard Deviation for Simulations", "std_an", "std_CT", "std_Cp", 'surging_std_target_grid_search.png', extra_plots = True, ax_label_type = "STD")
 four_plot(surging_df, "Surging Turbine - Kurtosis for Simulations", "kurtosis_an", "kurtosis_CT", "kurtosis_Cp", 'surging_kurtosis_target_grid_search.png', extra_plots = True, ax_label_type = "Kurtosis")
 
-four_plot(pitching_df, "Pitching Turbine - Means for Simulations", "mean_an", "mean_CT", "mean_Cp", 'pitching_mean_target_grid_search.png', extra_plots = True, ax_label_type = "Mean")
+four_plot(pitching_df, "Pitching Turbine - Means for Simulations", "mean_an", "mean_CT", "mean_Cp", 'pitching_mean_target_grid_search.png', add_classical = True, ax_label_type = "Mean")
 four_plot(pitching_df, "Pitching Turbine - Skewness for Simulations", "skewness_an", "skewness_CT", "skewness_Cp", 'pitching_skewness_target_grid_search.png', extra_plots = True, ax_label_type = "Skew")
 four_plot(pitching_df, "Pitching Turbine - Standard Deviation for Simulations", "std_an", "std_CT", "std_Cp", 'pitching_std_target_grid_search.png', extra_plots = True, ax_label_type = "STD")
 four_plot(pitching_df, "Pitching Turbine - Kurtosis for Simulations", "kurtosis_an", "kurtosis_CT", "kurtosis_Cp", 'pitching_kurtosis_target_grid_search.png', extra_plots = True, ax_label_type = "Kurtosis")

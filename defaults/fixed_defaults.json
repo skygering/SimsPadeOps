@@ -14,7 +14,8 @@
         "t_dataDump" : 1000,
         "useDynamicTurbine" : false,
         "ADM_Type" : 5,
-        "RunID" : 1
+        "RunID" : 1,
+        "useWindTurbines" : true
     },
     "turb": {
         "xLoc": 5,
