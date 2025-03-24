@@ -152,7 +152,7 @@ def write_hit(new_inputs, curr_inputs, sim_inputs, template_path, out_path, quie
 
 def write_interaction(new_inputs, curr_inputs, template_path, out_path, quiet):
     update_inputs(new_inputs, curr_inputs)
-    interaction_file_path = curr_inputs["interaction_file_name"]
+    interaction_file_path = out_path.joinpath(curr_inputs["interaction_file_name"])
     fill_template(curr_inputs, template_path, interaction_file_path)
     if not quiet:
         print("\tDone writing interaction input file.")
