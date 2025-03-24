@@ -152,7 +152,7 @@ def write_hit(new_inputs, curr_inputs, sim_inputs, template_path, out_path, quie
 
 def write_interaction(new_inputs, curr_inputs, template_path, out_path, quiet):
     update_inputs(new_inputs, curr_inputs)
-    interaction_file_path = out_path.joinpath(curr_inputs["interaction_file_name"])
+    interaction_file_path = curr_inputs["interaction_file_name"]
     fill_template(curr_inputs, template_path, interaction_file_path)
     if not quiet:
         print("\tDone writing interaction input file.")
@@ -170,7 +170,7 @@ def write_padeops_files(new_inputs, *, default_input,
     # inputdir and outputdir must be the same for PadeOpsIO to work
     new_inputs["sim"]["outputdir"] = new_inputs["sim"]["inputdir"]
     # load turbine template and write simulation's .ini files (if there are turbines)
-    if n_turbs > 0:
+    if n_turbs > 0 and new_inputs["sim"]["useWindTurbines"]:
         turb_path = safe_mkdir(inputdir.joinpath(curr_inputs["sim"]["turb_dirname"]), quiet=quiet)
         curr_inputs["sim"]["turb_dirname"] = turb_path
         write_turb(new_inputs["turb"], curr_inputs["turb"], Path(turb_template), turb_path, quiet, n_turbs)

@@ -47,7 +47,7 @@ single_inputs = dict(
     run = dict(
         # always need to provide the filepaths (no defaults)
         problem_dir = "turbines",
-        problem_name = "AD_coriolis_shear",
+        problem_name = "HIT_shear",
         job_name = "TI_test_sg",
         # if not provided, default_inputs will be used
         n_hrs = 4,
