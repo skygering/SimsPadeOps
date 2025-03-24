@@ -140,8 +140,6 @@ def write_hit(new_inputs, curr_inputs, sim_inputs, template_path, out_path, quie
     new_inputs["tstop"] = sim_inputs["tstop"]
     new_inputs["dt"] = sim_inputs["dt"]
     new_inputs["CFL"] = sim_inputs["CFL"]
-    # HIT box should have the same RunID
-    new_inputs["RunID"] = sim_inputs["RunID"]
     # update curr_inputs with new_inputs
     update_inputs(new_inputs, curr_inputs)
     hit_file_path = out_path.joinpath(curr_inputs["hit_file_name"])
@@ -257,8 +255,6 @@ def write_padeops_suite(single_inputs, varied_inputs, *, default_input, varied_h
             single_inputs[input_type][input_key] = val
         # create sub-directory
         single_inputs['sim']['inputdir'] = inputdir.joinpath(f"Sim_{id}")
-        # set run ID
-        single_inputs['sim']["RunID"] = id
         # update job name
         single_inputs["run"]["job_name"] = jobname + f"_{id}"
         # write files

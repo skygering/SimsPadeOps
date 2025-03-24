@@ -29,7 +29,8 @@ single_inputs = dict(
         Ly = Ly,
         Lz = Ly,
         t_dataDump = 50,
-        tstop = 250,
+        tstop = 400,
+        CFL = -1
     ),
     turb = dict(  # can only provide one turbine right now - update when needed
         # if not provided, default_inputs will be used
@@ -38,6 +39,8 @@ single_inputs = dict(
     ),
     hit = dict(
         # always need to provide the filepaths (no defaults)
+        restartFile_TID = 0,
+        restartFile_RID = 1
     ),
     interaction = dict(
         TI_target = 0.035,
