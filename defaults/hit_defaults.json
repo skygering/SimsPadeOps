@@ -35,6 +35,7 @@
     },
     "hit": {
         "hit_file_name" : "hit_inputs.dat",
+        "hit_inputdir": "",
         "ny": 128,
         "Ly": 10,
         "tstop": 1000,
@@ -45,12 +46,10 @@
         "t_dataDump": 100,
         "RunID" : 1
     },
-    "interactions": {
+    "interaction": {
         "interaction_file_name" : "interaction_inputs.dat",
         "TI_target": 0.03,
         "TI_xloc" : 5,
         "TI_fact": -1
-
-
     }
 }

@@ -1,5 +1,5 @@
 &INPUT
-inputdir              = "{{ inputdir }}"                        ! Directory for any input files
+inputdir              = "{{ hit_inputdir }}"                        ! Directory for any input files
 outputdir             = "{{ outputdir }}"                       ! Directory for all output files
 nx                    = {{ "%d"|format(nx|int) }}               ! Number of points in X, Y, and Z - All three must be the same for a HIT box
 ny                    = {{ "%d"|format(ny|int) }}               ! Resolution of HIT box in y and z much match simulation
@@ -57,14 +57,14 @@ computeVorticity      = .FALSE.     ! Compute and write vorticity?
 /
 &OS_INTERACTIONS
 useSystemInteractions = .TRUE.      ! Do you wish to interact with the program while its running
-tSystemInteractions   = 10          ! Check for interactions commands after these many time steps
+tSystemInteractions   = 10          ! Check for interaction commands after these many time steps
 controlDir            = "null"      ! Check in this directory for command files (NULL = Check in output directory)
 deleteInstructions    = .true.      ! Do you want to delete instruction after reading it?
 /
 /
 &PHYSICS
 isInviscid            = .TRUE.      ! Is this an inviscid simulation?
-useCoriolis           = .FALSE.     ! Activate the coriolis term? 
+useCoriolis           = .TRUE.     ! Activate the coriolis term? 
 useExtraForcing       = .FALSE.     ! Is an extra forcing term being used? (non-Geostrophic forcing only)
 isStratified          = .FALSE.     ! Use Stratification / active scalar in momentum
 useMoisture           = .FALSE.     ! Include moisture (passive scalar) transport?

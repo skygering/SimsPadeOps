@@ -141,7 +141,7 @@ def write_hit(new_inputs, curr_inputs, sim_inputs, template_path, out_path, quie
     new_inputs["dt"] = sim_inputs["dt"]
     new_inputs["CFL"] = sim_inputs["CFL"]
     # HIT box should have the same RunID
-    new_inputs['hit']["RunID"] = sim_inputs["RunID"]
+    new_inputs["RunID"] = sim_inputs["RunID"]
     # update curr_inputs with new_inputs
     update_inputs(new_inputs, curr_inputs)
     hit_file_path = out_path.joinpath(curr_inputs["hit_file_name"])
@@ -152,14 +152,14 @@ def write_hit(new_inputs, curr_inputs, sim_inputs, template_path, out_path, quie
 
 def write_interaction(new_inputs, curr_inputs, template_path, out_path, quiet):
     update_inputs(new_inputs, curr_inputs)
-    interactions_file_path = out_path.joinpath(curr_inputs["interaction_file_name"])
-    fill_template(curr_inputs, template_path, interactions_file_path)
+    interaction_file_path = out_path.joinpath(curr_inputs["interaction_file_name"])
+    fill_template(curr_inputs, template_path, interaction_file_path)
     if not quiet:
-        print("\tDone writing interactions input file.")
-    return interactions_file_path
+        print("\tDone writing interaction input file.")
+    return interaction_file_path
 
 def write_padeops_files(new_inputs, *, default_input,
-    sim_template, run_template, turb_template = None, hit_template = None, interactions_template = None,
+    sim_template, run_template, turb_template = None, hit_template = None, interaction_template = None,
     n_turbs = 1, quiet = False, node_cap = 128
 ):
     # load default parameters
@@ -179,11 +179,11 @@ def write_padeops_files(new_inputs, *, default_input,
     run_inputfile = ad_file
     # load HIT template and write HIT's .dat files (if there should be turbulence)
     if "hit" in new_inputs:
-        hit_file = write_hit(new_inputs["hit"], curr_inputs["hit"], new_inputs["sim"], Path(hit_template), inputdir, quiet)
-        new_inputs["interactions"]["HIT_InputFile"] = hit_file
-        new_inputs["interactions"]["AD_InputFile"] = ad_file
-        interactions_file = write_interaction(new_inputs["interactions"], curr_inputs["interactions"], Path(interactions_template), inputdir, quiet)
-        run_inputfile = interactions_file
+        hit_file = write_hit(new_inputs["hit"], curr_inputs["hit"], curr_inputs["sim"], Path(hit_template), inputdir, quiet)
+        new_inputs["interaction"]["HIT_InputFile"] = hit_file
+        new_inputs["interaction"]["AD_InputFile"] = ad_file
+        interaction_file = write_interaction(new_inputs["interaction"], curr_inputs["interaction"], Path(interaction_template), inputdir, quiet)
+        run_inputfile = interaction_file
     # load run template and write .sh file to run simulation
     new_inputs["run"]["inputfile"] = run_inputfile
     write_run(new_inputs["run"], curr_inputs["run"], Path(run_template), inputdir, quiet, get_nnodes(curr_inputs["sim"]), node_cap)
@@ -194,7 +194,7 @@ def _prep_padeops_suite_inputs(varied_inputs, varied_header, nested, default_inp
     input_type_list = []
     if isinstance(varied_inputs, dict):
         value_lists = []
-        for input_type in iter(varied_inputs):  # sim, turb, or run keys
+        for input_type in iter(varied_inputs):  # sim, turb, run, hit, or instance keys
             # skip input type if not in the varied_inputs dictionary
             if not input_type in varied_inputs: continue
             inputs = varied_inputs[input_type]
@@ -217,6 +217,10 @@ def _prep_padeops_suite_inputs(varied_inputs, varied_header, nested, default_inp
                     input_type_list.append("turb")
                 elif row in inputs["run"]:
                     input_type_list.append("run")
+                elif row in inputs["hit"]:
+                    input_type_list.append("hit")
+                elif row in inputs["interaction"]:
+                    input_type_list.append("interaction")
                 else:
                     raise Exception(f"Key {row} isn't a valid input to the simulation as it isn't in the provided default file.")
             row_header += varied_header
