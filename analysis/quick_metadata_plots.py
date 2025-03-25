@@ -16,9 +16,9 @@ import moviepy.video.io.ImageSequenceClip
 import re
 
 # single image
-def plot_run_power(run_folder, label = ""):
+def plot_run_power(run_folder, label = "", runid = 0):
     fig, ax = plt.subplots(figsize=(9, 3))
-    sim = pio.BudgetIO(run_folder, padeops = True, runid = 1)
+    sim = pio.BudgetIO(run_folder, padeops = True, runid = runid)
     power = sim.read_turb_power("all", turb=1)
     Cp = [au.power_to_Cp(p) for p in power]
     n_steps = len(Cp)
@@ -28,6 +28,7 @@ def plot_run_power(run_folder, label = ""):
     plt.legend(loc="lower right")
     os.path.join(run_folder, 'run_power.png')
     plt.savefig(os.path.join(run_folder, 'run_power.png'))
+    return
 
 
 def get_sim_varied_params(suite_folder):
@@ -62,7 +63,7 @@ def plot_suite_power(suite_folder, save = True, figsize = (9, 3)):
     # Plot power from each run
     for i, folder in enumerate(sub_folders):
         try:
-            sim = pio.BudgetIO(folder, padeops = True, runid = 1)
+            sim = pio.BudgetIO(folder, padeops = True, runid = 0)
             dt = sim.input_nml["input"]["dt"]
             trans_tau = int(math.ceil(50 / dt) + 1)
             # TODO: ask Kirby if default should be "all", rather than None
@@ -139,7 +140,7 @@ def film_instantaneous_field(image_folder, fps = 10, video_name = "video.mp4"):
 def plot_requested_turb_power(ax, folder, runs, labels, zoom = None, **kwargs):
     for i, r in enumerate(runs):
         run_folder = au.get_run_folder(folder, r)
-        sim = pio.BudgetIO(run_folder, padeops = True, runid = 1)
+        sim = pio.BudgetIO(run_folder, padeops = True, runid = 0)
         dt = sim.input_nml["input"]["dt"]
         trans_tau = int(math.ceil(50 / dt) + 1)
         # TODO: ask Kirby if default should be "all", rather than None
@@ -158,7 +159,7 @@ def plot_requested_turb_power(ax, folder, runs, labels, zoom = None, **kwargs):
 def plot_requested_turb_u_velocity(ax, folder, runs, labels, zoom = None, induced = False, u_infty = 1, **kwargs):
     for i, r in enumerate(runs):
         run_folder = au.get_run_folder(folder, r)
-        sim = pio.BudgetIO(run_folder, padeops = True, runid = 1)
+        sim = pio.BudgetIO(run_folder, padeops = True, runid = 0)
         dt = sim.input_nml["input"]["dt"]
         trans_tau = int(math.ceil(50 / dt) + 1)
         # TODO: ask Kirby if default should be "all", rather than None
@@ -177,7 +178,7 @@ def plot_requested_turb_u_velocity(ax, folder, runs, labels, zoom = None, induce
 
 def plot_theoretical_turb_power(ax, CT, folder, run, zoom = None, color = 'black', **kwargs):
     run_folder = au.get_run_folder(folder, run)
-    sim = pio.BudgetIO(run_folder, padeops = True, runid = 1)
+    sim = pio.BudgetIO(run_folder, padeops = True, runid = 0)
     dt = sim.input_nml["input"]["dt"]
     trans_tau = int(math.ceil(50 / dt) + 1)
     power = sim.read_turb_power("all", turb=1)[trans_tau:]

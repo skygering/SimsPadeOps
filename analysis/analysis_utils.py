@@ -131,5 +131,9 @@ def plot_gci_cp(sim_nums, sim_folder, plot_title = None, zoom = None, to_plot = 
 
 
 def get_TI_fact(path, logfile, start_TIDX):
-    log_file_dict = pio.query_logfile(os.path.join(path, logfile), search_terms=["TIDX", "Time", "TI_fact", "TI_inst"], crop_equal = False)
+    log_file_dict = pio.query_logfile(os.path.join(path, logfile), search_terms=["TI_fact"], crop_equal = False)
     return np.average(log_file_dict["TI_fact"][start_TIDX:])
+
+def get_TI_inst(path, logfile, start_TIDX):
+    log_file_dict = pio.query_logfile(os.path.join(path, logfile), search_terms=["TI_inst"], crop_equal = False)
+    return np.average(log_file_dict["TI_inst"][start_TIDX:])

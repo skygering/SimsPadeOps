@@ -18,84 +18,93 @@ sim_4_SU_PI_folder = os.path.join(au.DATA_PATH, "F_0004_SU_PI_Files")
 sim_5_all_folder = os.path.join(au.DATA_PATH, "F_0005_X_SU_PI_Files")
 sim_6_all_folder = os.path.join(au.DATA_PATH, "F_0006_X_SU_PI_Files")
 sim_8_all_folder = os.path.join(au.DATA_PATH, "F_0008_X_SU_PI_Files")
+sim_9_all_folder = os.path.join(au.DATA_PATH, "F_0009_X_SU_PI_Files")
 data_fn = os.path.join(sim_6_all_folder, 'collected_runs.csv')
 
 # # go through data and collect
-# df = pd.DataFrame(columns=['marker', 'nx', 'filter', 'filterFactor', 'useCorrection', 'CT_prime',
-#                            'mean_CT','mean_an','mean_Cp',
-#                            'variance_CT', 'variance_an', 'variance_Cp',
-#                            'std_CT', 'std_an', 'std_Cp',
-#                            'skewness_CT', 'skewness_an', 'skewness_Cp',
-#                            'kurtosis_CT', 'kurtosis_an', 'kurtosis_Cp'])
-# folders = (sim_4_X_folder, sim_4_SU_PI_folder, sim_5_all_folder, sim_6_all_folder, sim_8_all_folder)
-# row = 0
-# for (k, folder) in enumerate(folders):
-#     rows, fields = mplts.get_sim_varied_params(folder)
-#     if k == 0:
-#         print("A")
-#         ids, cT, tstop, nx, ny, nz, dt, filterWidth, useCorrection = zip(*rows)
-#         surge_freq = [0] * len(ids)
-#         surge_amplitude = surge_freq
-#         pitch_amplitude = surge_amplitude
-#     elif k == 1:
-#         print("B")
-#         ids, cT, nx, ny, nz, dt, filterWidth, useCorrection, surge_amplitude, pitch_amplitude = zip(*rows)
-#         surge_freq = [1] * len(ids)
-#     elif k == 2:
-#         print("C")
-#         ids, dt, cT, surge_freq, surge_amplitude, pitch_amplitude, nx, ny, nz, filterWidth = zip(*rows)
-#         useCorrection = [False] * len(ids)
-#     elif k == 3:
-#         print("D")
-#         ids, dt, cT, surge_freq, surge_amplitude, pitch_amplitude, nx, ny, nz, filterWidth = zip(*rows)
-#         useCorrection = [False] * len(ids)
-#     else: 
-#         ids, dt, nx, ny, nz, filterWidth, cT, surge_freq, surge_amplitude, pitch_amplitude = zip(*rows)
-#         useCorrection = [True] * len(ids)
+df = pd.DataFrame(columns=['marker', 'nx', 'ny', 'filter', 'filterFactor', 'useCorrection', 'CT_prime', "turbulence",
+                           'mean_CT','mean_an','mean_Cp',
+                           'variance_CT', 'variance_an', 'variance_Cp',
+                           'std_CT', 'std_an', 'std_Cp',
+                           'skewness_CT', 'skewness_an', 'skewness_Cp',
+                           'kurtosis_CT', 'kurtosis_an', 'kurtosis_Cp'])
+folders = (sim_4_X_folder, sim_4_SU_PI_folder, sim_5_all_folder, sim_6_all_folder, sim_8_all_folder, sim_9_all_folder)
+row = 0
+for (k, folder) in enumerate(folders):
+    rows, fields = mplts.get_sim_varied_params(folder)
+    if k == 0:
+        print("A")
+        ids, cT, tstop, nx, ny, nz, dt, filterWidth, useCorrection = zip(*rows)
+        surge_freq = [0] * len(ids)
+        surge_amplitude = surge_freq
+        pitch_amplitude = surge_amplitude
+    elif k == 1:
+        print("B")
+        ids, cT, nx, ny, nz, dt, filterWidth, useCorrection, surge_amplitude, pitch_amplitude = zip(*rows)
+        surge_freq = [1] * len(ids)
+    elif k == 2:
+        print("C")
+        ids, dt, cT, surge_freq, surge_amplitude, pitch_amplitude, nx, ny, nz, filterWidth = zip(*rows)
+        useCorrection = [False] * len(ids)
+    elif k == 3:
+        print("D")
+        ids, dt, cT, surge_freq, surge_amplitude, pitch_amplitude, nx, ny, nz, filterWidth = zip(*rows)
+        useCorrection = [False] * len(ids)
+    elif k == 4:
+        print("E")
+        ids, dt, nx, ny, nz, filterWidth, cT, surge_freq, surge_amplitude, pitch_amplitude = zip(*rows)
+        useCorrection = [True] * len(ids)
+    elif k == 5:
+        print("F")
+        ids, dt, cT, nx, ny, nz, filterWidth, useCorrection, hit_inputdir, TI_fact, surge_freq, surge_amplitude, pitch_amplitude = zip(*rows)
 
 
-#     # get data from runs
-#     for (i, id_str) in enumerate(ids):
-#         run_folder = os.path.join(folder, "Sim_" + id_str)
-#         sim = pio.BudgetIO(run_folder, padeops = True, runid = 1)
-#         dt_i = dt[i]
-#         trans_tau = int(math.ceil(50 / float(dt_i)) + 1)
-#         try:
-#             # get all of the needed values
-#             power = sim.read_turb_power("all", turb=1)[trans_tau:]
-#             uvel = sim.read_turb_uvel("all", turb = 1)[trans_tau:]
-#         except: 
-#             continue
-#         else:
-#             h = ((25 / float(nx[i]))**2 + 2 * (10 / float(ny[i]))**2)**(1/2)
-#             filter_width = float(filterWidth[i])
-#             # if useCorrection[i] and filter_width > 0.1:
-#             #     continue
-#             Cp_vals = [au.power_to_Cp(p) for p in power]
-#             an_vals = [au.vel_to_a(u) for u in uvel]
-#             cT_prime_val = float(cT[i])
-#             cT_vals = [cT_prime_val * (1 - an)**2 for an in an_vals]
-#             # save sim info
-#             if float(surge_freq[i]) == 0:
-#                 marker = "o"
-#             elif float(surge_amplitude[i]) != 0:
-#                 marker = "s"
-#             else:
-#                 marker = "^"
-#             filter_factor = round(filter_width / h, 3)
+    # get data from runs
+    for (i, id_str) in enumerate(ids):
+        run_folder = os.path.join(folder, "Sim_" + id_str)
+        sim = pio.BudgetIO(run_folder, padeops = True, runid = 0)
+        dt_i = dt[i]
+        trans_tau = int(math.ceil(50 / float(dt_i)) + 1)
+        try:
+            # get all of the needed values
+            power = sim.read_turb_power("all", turb=1)[trans_tau:]
+            uvel = sim.read_turb_uvel("all", turb = 1)[trans_tau:]
+        except: 
+            continue
+        else:
+            print("HERE")
+            h = ((25 / float(nx[i]))**2 + 2 * (10 / float(ny[i]))**2)**(1/2)
+            filter_width = float(filterWidth[i])
+            # if useCorrection[i] and filter_width > 0.1:
+            #     continue
+            Cp_vals = [au.power_to_Cp(p) for p in power]
+            an_vals = [au.vel_to_a(u) for u in uvel]
+            cT_prime_val = float(cT[i])
+            cT_vals = [cT_prime_val * (1 - an)**2 for an in an_vals]
+            # save sim info
+            if float(surge_freq[i]) == 0:
+                marker = "o"
+            elif float(surge_amplitude[i]) != 0:
+                marker = "s"
+            else:
+                marker = "^"
+            filter_factor = round(filter_width / h, 3)
 
-#             Cp_stats = describe(Cp_vals)
-#             an_stats = describe(an_vals)
-#             cT_stats = describe(cT_vals)
-#             mean_info = [cT_stats.mean, an_stats.mean, Cp_stats.mean]
-#             variance_info = [cT_stats.variance, an_stats.variance, Cp_stats.variance]
-#             std_info = [std(cT_vals), std(an_vals), std(Cp_vals)]
-#             skewness_info = [cT_stats.skewness, an_stats.skewness, Cp_stats.skewness]
-#             kurtosis_info = [cT_stats.kurtosis, an_stats.kurtosis, Cp_stats.kurtosis]
-#             df.loc[row] = [marker, float(nx[i]), filter_width, filter_factor, useCorrection[i], cT_prime_val] + mean_info + variance_info + std_info + skewness_info + kurtosis_info
-#             row += 1
-# # saving the dataframe
-# df.to_csv(data_fn)
+            turbulence = True if k == 5 else False
+
+            Cp_stats = describe(Cp_vals)
+            an_stats = describe(an_vals)
+            cT_stats = describe(cT_vals)
+            mean_info = [cT_stats.mean, an_stats.mean, Cp_stats.mean]
+            variance_info = [cT_stats.variance, an_stats.variance, Cp_stats.variance]
+            std_info = [std(cT_vals), std(an_vals), std(Cp_vals)]
+            skewness_info = [cT_stats.skewness, an_stats.skewness, Cp_stats.skewness]
+            kurtosis_info = [cT_stats.kurtosis, an_stats.kurtosis, Cp_stats.kurtosis]
+            # ['marker', 'nx', 'ny', 'filter', 'filterFactor', 'useCorrection', 'CT_prime', "turbulence",'mean_CT','mean_an','mean_Cp','variance_CT', 'variance_an', 'variance_Cp', 'std_CT', 'std_an', 'std_Cp','skewness_CT', 'skewness_an', 'skewness_Cp','kurtosis_CT', 'kurtosis_an', 'kurtosis_Cp']
+            df.loc[row] = [marker, float(nx[i]), float(ny[i]), filter_width, filter_factor, useCorrection[i], cT_prime_val, turbulence] + mean_info + variance_info + std_info + skewness_info + kurtosis_info
+            row += 1
+# saving the dataframe
+df.to_csv(data_fn)
 
 
 def four_plot(df, title, an_key, CT_key, Cp_key, save_fn, add_classical = False, extra_plots = False, ax_label_type = ''):
@@ -157,7 +166,7 @@ def four_plot(df, title, an_key, CT_key, Cp_key, save_fn, add_classical = False,
             edgecolor = 'face'
             edgewidth = 0
             alpha = 0.5
-        # Columns in row: ['marker', 'nx', 'filter', 'filterFactor','CT_prime','mean_CT','mean_an','mean_Cp']
+        # Columns in row: ['marker', 'nx', 'ny', 'filter', 'filterFactor','CT_prime','mean_CT','mean_an','mean_Cp']
         # plot CT vs an - size based off of resolution, color based off of filter, marker based off of turbine movement
         ax0.scatter(row[an_key], row[CT_key], marker = row["marker"], s = marker_size, color = marker_color, edgecolors = edgecolor, linewidth = edgewidth, alpha=alpha)
         # plot CT vs CT' - size based off of resolution, color based off of filter, marker based off of turbine movement
@@ -212,22 +221,22 @@ pitching_df = df[df['marker'] == "^"]
 
 
 
-four_plot(df, "Means for Simulations ", "mean_an", "mean_CT", "mean_Cp", 'mean_target_grid_search.png', add_classical = True, ax_label_type = "Mean")
-four_plot(df, "Skewness for Simulations", "skewness_an", "skewness_CT", "skewness_Cp", 'skewness_target_grid_search.png', extra_plots = True, ax_label_type = "Skew")
-four_plot(df, "Standard Deviation for Simulations", "std_an", "std_CT", "std_Cp", 'std_target_grid_search.png', extra_plots = True, ax_label_type = "STD")
-four_plot(df, "Kurtosis for Simulations", "kurtosis_an", "kurtosis_CT", "kurtosis_Cp", 'kurtosis_target_grid_search.png', extra_plots = True, ax_label_type = "Kurtosis")
+# four_plot(df, "Means for Simulations ", "mean_an", "mean_CT", "mean_Cp", 'mean_target_grid_search.png', add_classical = True, ax_label_type = "Mean")
+# four_plot(df, "Skewness for Simulations", "skewness_an", "skewness_CT", "skewness_Cp", 'skewness_target_grid_search.png', extra_plots = True, ax_label_type = "Skew")
+# four_plot(df, "Standard Deviation for Simulations", "std_an", "std_CT", "std_Cp", 'std_target_grid_search.png', extra_plots = True, ax_label_type = "STD")
+# four_plot(df, "Kurtosis for Simulations", "kurtosis_an", "kurtosis_CT", "kurtosis_Cp", 'kurtosis_target_grid_search.png', extra_plots = True, ax_label_type = "Kurtosis")
 
-four_plot(stationary_df, "Stationary Turbine - Means for Simulations", "mean_an", "mean_CT", "mean_Cp", 'stationary_mean_target_grid_search.png', add_classical = True, ax_label_type = "Mean")
-# four_plot(stationary_df, "Stationary Turbine - Skewness for Simulations", "skewness_an", "skewness_CT", "skewness_Cp", 'stationary_skewness_target_grid_search.png', extra_plots = True, ax_label_type = "Skew")
-four_plot(stationary_df, "Stationary Turbine - Standard Deviation for Simulations", "std_an", "std_CT", "std_Cp", 'stationary_std_target_grid_search.png', extra_plots = True, ax_label_type = "STD")
-# four_plot(stationary_df, "Stationary Turbine - Kurtosis for Simulations", "kurtosis_an", "kurtosis_CT", "kurtosis_Cp", 'stationary_kurtosis_target_grid_search.png', extra_plots = True, ax_label_type = "Kurtosis")
+# four_plot(stationary_df, "Stationary Turbine - Means for Simulations", "mean_an", "mean_CT", "mean_Cp", 'stationary_mean_target_grid_search.png', add_classical = True, ax_label_type = "Mean")
+# # four_plot(stationary_df, "Stationary Turbine - Skewness for Simulations", "skewness_an", "skewness_CT", "skewness_Cp", 'stationary_skewness_target_grid_search.png', extra_plots = True, ax_label_type = "Skew")
+# four_plot(stationary_df, "Stationary Turbine - Standard Deviation for Simulations", "std_an", "std_CT", "std_Cp", 'stationary_std_target_grid_search.png', extra_plots = True, ax_label_type = "STD")
+# # four_plot(stationary_df, "Stationary Turbine - Kurtosis for Simulations", "kurtosis_an", "kurtosis_CT", "kurtosis_Cp", 'stationary_kurtosis_target_grid_search.png', extra_plots = True, ax_label_type = "Kurtosis")
 
-four_plot(surging_df, "Surging Turbine - Means for Simulations", "mean_an", "mean_CT", "mean_Cp", 'surging_mean_target_grid_search.png', add_classical = True, ax_label_type = "Mean")
-four_plot(surging_df, "Surging Turbine - Skewness for Simulations", "skewness_an", "skewness_CT", "skewness_Cp", 'surging_skewness_target_grid_search.png', extra_plots = True, ax_label_type = "Skew")
-four_plot(surging_df, "Surging Turbine - Standard Deviation for Simulations", "std_an", "std_CT", "std_Cp", 'surging_std_target_grid_search.png', extra_plots = True, ax_label_type = "STD")
-four_plot(surging_df, "Surging Turbine - Kurtosis for Simulations", "kurtosis_an", "kurtosis_CT", "kurtosis_Cp", 'surging_kurtosis_target_grid_search.png', extra_plots = True, ax_label_type = "Kurtosis")
+# four_plot(surging_df, "Surging Turbine - Means for Simulations", "mean_an", "mean_CT", "mean_Cp", 'surging_mean_target_grid_search.png', add_classical = True, ax_label_type = "Mean")
+# four_plot(surging_df, "Surging Turbine - Skewness for Simulations", "skewness_an", "skewness_CT", "skewness_Cp", 'surging_skewness_target_grid_search.png', extra_plots = True, ax_label_type = "Skew")
+# four_plot(surging_df, "Surging Turbine - Standard Deviation for Simulations", "std_an", "std_CT", "std_Cp", 'surging_std_target_grid_search.png', extra_plots = True, ax_label_type = "STD")
+# four_plot(surging_df, "Surging Turbine - Kurtosis for Simulations", "kurtosis_an", "kurtosis_CT", "kurtosis_Cp", 'surging_kurtosis_target_grid_search.png', extra_plots = True, ax_label_type = "Kurtosis")
 
-four_plot(pitching_df, "Pitching Turbine - Means for Simulations", "mean_an", "mean_CT", "mean_Cp", 'pitching_mean_target_grid_search.png', add_classical = True, ax_label_type = "Mean")
-four_plot(pitching_df, "Pitching Turbine - Skewness for Simulations", "skewness_an", "skewness_CT", "skewness_Cp", 'pitching_skewness_target_grid_search.png', extra_plots = True, ax_label_type = "Skew")
-four_plot(pitching_df, "Pitching Turbine - Standard Deviation for Simulations", "std_an", "std_CT", "std_Cp", 'pitching_std_target_grid_search.png', extra_plots = True, ax_label_type = "STD")
-four_plot(pitching_df, "Pitching Turbine - Kurtosis for Simulations", "kurtosis_an", "kurtosis_CT", "kurtosis_Cp", 'pitching_kurtosis_target_grid_search.png', extra_plots = True, ax_label_type = "Kurtosis")
+# four_plot(pitching_df, "Pitching Turbine - Means for Simulations", "mean_an", "mean_CT", "mean_Cp", 'pitching_mean_target_grid_search.png', add_classical = True, ax_label_type = "Mean")
+# four_plot(pitching_df, "Pitching Turbine - Skewness for Simulations", "skewness_an", "skewness_CT", "skewness_Cp", 'pitching_skewness_target_grid_search.png', extra_plots = True, ax_label_type = "Skew")
+# four_plot(pitching_df, "Pitching Turbine - Standard Deviation for Simulations", "std_an", "std_CT", "std_Cp", 'pitching_std_target_grid_search.png', extra_plots = True, ax_label_type = "STD")
+# four_plot(pitching_df, "Pitching Turbine - Kurtosis for Simulations", "kurtosis_an", "kurtosis_CT", "kurtosis_Cp", 'pitching_kurtosis_target_grid_search.png', extra_plots = True, ax_label_type = "Kurtosis")
