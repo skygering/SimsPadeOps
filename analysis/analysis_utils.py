@@ -128,3 +128,8 @@ def plot_gci_cp(sim_nums, sim_folder, plot_title = None, zoom = None, to_plot = 
         print("GCI Values: " + str(gci.get('gci')))
         print("Asymptotic GCI: " + str(gci.get('asymptotic_gci')))
         print("Refinement Ratio: " + str(gci.get('refinement_ratio')))
+
+
+def get_TI_fact(path, logfile, start_TIDX):
+    log_file_dict = pio.query_logfile(os.path.join(path, logfile), search_terms=["TIDX", "Time", "TI_fact", "TI_inst"], crop_equal = False)
+    return np.average(log_file_dict["TI_fact"][start_TIDX:])

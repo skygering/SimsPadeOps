@@ -2,10 +2,10 @@ import itertools
 import jinja_sim_utils as ju
 from pathlib import Path
 
-# In this simulation, I will re-run many of my experiments from the grid convergence tests,
-# but with added turbulence. The first experiment I need is to determine the TI_fact. Thus,
-# I ran with a TI_target of 0.035 to determine the TI_fact. I did this for both resolutions of
-# HIT grid. After that, I ran 9 simulations per resolutions (varying filter, movement, and correction factor).
+# In this simulation, I will figure out the turbine factor to be able to re-run many of my
+# experiments from the grid convergence tests, but with added turbulence.
+# I need is to determine the TI_fact. Thus, I ran with a TI_target of 0.035 to
+# determine the TI_fact. I did this for both resolutions of HIT grid.
 
 sim_template = ju.TEMPLATE_PATH.joinpath("sim_template.jinja")
 turb_template = ju.TEMPLATE_PATH.joinpath("turb_template.jinja")
@@ -80,10 +80,13 @@ varied_inputs = itertools.product(domain_size_iter, ti_iter, turbine_iter)
 varied_inputs = [(ju.find_min_dt(1.0, vin[0][0], vin[0][1], vin[0][2], sf = 0, single_inputs = single_inputs, v = 0.0, w = 0.0), ) + vin for vin in varied_inputs]
 varied_header = ["dt", "nx", "ny", "nz", "hit_inputdir", "TI_target", "TI_fact", "useWindTurbines", "useDynamicTurbine"]
 
+TI_fact_128 = 0.3477662250832144
+TI_fact_256 = 0.31252588355210836
+
 # for v in varied_inputs:
 #     print(v)                                   
 
 # write needed simulation files
-ju.write_padeops_suite(single_inputs, varied_inputs, varied_header = varied_header, default_input = default_inputs,
-    sim_template = sim_template, run_template = run_template, turb_template = turb_template,
-    hit_template = hit_template, interaction_template = interaction_template, node_cap = 12)
+# ju.write_padeops_suite(single_inputs, varied_inputs, varied_header = varied_header, default_input = default_inputs,
+#     sim_template = sim_template, run_template = run_template, turb_template = turb_template,
+#     hit_template = hit_template, interaction_template = interaction_template, node_cap = 12)

@@ -168,7 +168,12 @@ def write_padeops_files(new_inputs, *, default_input,
     # inputdir and outputdir must be the same for PadeOpsIO to work
     new_inputs["sim"]["outputdir"] = new_inputs["sim"]["inputdir"]
     # load turbine template and write simulation's .ini files (if there are turbines)
-    if n_turbs > 0 and new_inputs["sim"]["useWindTurbines"]:
+    has_turbs = n_turbs > 0
+    if "useWindTurbines" in new_inputs["sim"]:
+        has_turbs = has_turbs and new_inputs["sim"]["useWindTurbines"]
+    else:
+         has_turbs = has_turbs and curr_inputs["sim"]["useWindTurbines"]
+    if has_turbs:
         turb_path = safe_mkdir(inputdir.joinpath(curr_inputs["sim"]["turb_dirname"]), quiet=quiet)
         curr_inputs["sim"]["turb_dirname"] = turb_path
         write_turb(new_inputs["turb"], curr_inputs["turb"], Path(turb_template), turb_path, quiet, n_turbs)

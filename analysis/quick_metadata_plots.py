@@ -175,7 +175,6 @@ def plot_requested_turb_u_velocity(ax, folder, runs, labels, zoom = None, induce
             continue
     return
 
-
 def plot_theoretical_turb_power(ax, CT, folder, run, zoom = None, color = 'black', **kwargs):
     run_folder = au.get_run_folder(folder, run)
     sim = pio.BudgetIO(run_folder, padeops = True, runid = 1)
@@ -188,4 +187,14 @@ def plot_theoretical_turb_power(ax, CT, folder, run, zoom = None, color = 'black
     if zoom is not None:
         time, Cp = au.x_zoom_plot(zoom, time, Cp)
     ax.plot(time, Cp, label = "Analytical $C_p$", color = color, **kwargs)
+    return
+
+def plot_TI_vals(path, logfile):
+    log_file_dict = pio.query_logfile(os.path.join(path, logfile), search_terms=["TIDX", "Time", "TI_fact", "TI_inst"], crop_equal = False)
+    plt.plot(log_file_dict["TIDX"][::2], log_file_dict["TI_inst"][1:])
+    plt.savefig(os.path.join(path, "test_inst.png"))
+
+    plt.figure()
+    plt.plot(log_file_dict["TIDX"][::2], log_file_dict["TI_fact"][1:])
+    plt.savefig(os.path.join(path, "test_fact.png"))
     return
