@@ -55,33 +55,33 @@ ids, CT, tstop, nx, ny, nz, dt, filterWidth, useCorrection = zip(*rows)
 # plt.savefig(os.path.join(sim_folder, 'static_grid_convergence_power_filter_effects_coarse_example.png'))
 
 # New Figure
-# fig, (ax1, ax2) = plt.subplots(ncols=2, sharey = True)
-# fig.set_figwidth(9)
-# fig.suptitle("$C_p$ vs Simulation Time for Stationary Turbine\nwith Lx = 25D and Ly = Lz = 10D ($\Delta = 0.08$)", y = 0.99)
-# ax1.set_title("\n$C_T'$ = 1.0")
-# ax2.set_title("\n$C_T'$ = 4.0")
-# ax1.set_xlabel("Simulation Time")
-# ax2.set_xlabel("Simulation Time")
-# ax1.set_ylabel("$C_p$")
-# zoom = (50, 150)
+fig, (ax1, ax2) = plt.subplots(ncols=2, sharey = True)
+fig.set_figwidth(9)
+fig.suptitle("$C_p$ vs Simulation Time for Stationary Turbine\nwith Lx = 25D and Ly = Lz = 10D ($\Delta = 0.08$)", y = 0.99)
+ax1.set_title("\n$C_T'$ = 1.0")
+ax2.set_title("\n$C_T'$ = 4.0")
+ax1.set_xlabel("Simulation Time")
+ax2.set_xlabel("Simulation Time")
+ax1.set_ylabel("$C_p$")
+zoom = (50, 150)
 
-ct1_sims = [4, 5, 6, 7]
-ct2_sims = [17, 18, 19, 20]
-# zoom = (50, 150)
-# mplts.plot_requested_turb_power(ax1, sim_folder, ct1_sims, [f"({nx[i]}, {ny[i]}, {nz[i]})" for i in ct1_sims], zoom = zoom)
-# mplts.plot_theoretical_turb_power(ax1, 1.0, sim_folder, 0, zoom = zoom)
-# ax1.legend(loc = "upper center", title = "$(nx, ny, nz)$", fancybox = True)
+ct1_sims = [5, 6, 7]
+ct2_sims = [18, 19, 20]
+zoom = (50, 150)
+mplts.plot_requested_turb_power(ax1, sim_folder, ct1_sims, [f"({nx[i]}, {ny[i]}, {nz[i]})" for i in ct1_sims], zoom = zoom)
+mplts.plot_theoretical_turb_power(ax1, 1.0, sim_folder, 0, zoom = zoom)
+ax1.legend(loc = "upper center", title = "$(nx, ny, nz)$", fancybox = True)
 
-# zoom = (50, 150)
-# mplts.plot_requested_turb_power(ax2, sim_folder, ct2_sims, [f"({nx[i]}, {ny[i]}, {nz[i]})" for i in ct2_sims], zoom = zoom)
+zoom = (50, 150)
+mplts.plot_requested_turb_power(ax2, sim_folder, ct2_sims, [f"({nx[i]}, {ny[i]}, {nz[i]})" for i in ct2_sims], zoom = zoom)
 # mplts.plot_theoretical_turb_power(ax2, 1.0, sim_folder, 0, zoom = zoom)
 
-# fig.subplots_adjust(top=0.8)
-# plt.savefig(os.path.join(sim_folder, 'static_grid_convergence_power_varied_CT.png'))
+fig.subplots_adjust(top=0.8)
+plt.savefig(os.path.join(sim_folder, 'static_grid_convergence_power_varied_CT.png'))
 
 # Plot the u velocity across the rotor
-field = "u"
-for runid in ct2_sims:
-    save_folder = mplts.plot_instantaneous_field(sim_folder, runid, tidx = "all", field = "u", xlim = 0)
-    video_name = field + str(runid) + "_across_rotor.mp4"
-    mplts.film_instantaneous_field(save_folder, video_name = video_name)
+# field = "u"
+# for runid in ct2_sims:
+#     save_folder = mplts.plot_instantaneous_field(sim_folder, runid, tidx = "all", field = "u", xlim = 0)
+#     video_name = field + str(runid) + "_across_rotor.mp4"
+#     mplts.film_instantaneous_field(save_folder, video_name = video_name)
