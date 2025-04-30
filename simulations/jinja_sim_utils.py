@@ -66,7 +66,6 @@ def get_h(nx, ny, nz, single_inputs):
     dz = single_inputs["sim"]["Lz"] / nz
     return math.sqrt(dx**2 +dy**2 + dz**2)
 
-
 def find_filter_width(single_inputs, nx = None, ny = None, nz = None, factor = 1.5):
     """
     filter delta/D = 3h/2D -> delta = 3h/2 since D = 1 and h = sqrt(dx^2 + dy^2 + dz^2)
@@ -220,9 +219,9 @@ def _prep_padeops_suite_inputs(varied_inputs, varied_header, nested, default_inp
                     input_type_list.append("turb")
                 elif row in inputs["run"]:
                     input_type_list.append("run")
-                elif row in inputs["hit"]:
+                elif "hit" in inputs and row in inputs["hit"]:
                     input_type_list.append("hit")
-                elif row in inputs["interaction"]:
+                elif "interaction" in inputs and row in inputs["interaction"]:
                     input_type_list.append("interaction")
                 else:
                     raise Exception(f"Key {row} isn't a valid input to the simulation as it isn't in the provided default file.")
