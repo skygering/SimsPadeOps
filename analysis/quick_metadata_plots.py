@@ -88,7 +88,7 @@ def plot_suite_power(suite_folder, save = True, figsize = (9, 3)):
         plt.savefig(os.path.join(suite_folder, 'suite_cp.png'))
     return fig, ax
 
-def _plot_instantaneous_field(save_folder, sim, *, tidx, field, xlim = [-5, 20], ylim =  [-5, 5], zlim = 0, suptitle = "", set_plot_lims = False, plot_ylim = [0, 1.2]):
+def _plot_instantaneous_field(save_folder, sim, *, tidx, field, xlim = [-5, 20], ylim =  [-5, 5],  zlim = 0, suptitle = "", set_plot_lims = False, plot_ylim = [0, 1.2], plot_zlim = None):
     ds = sim.slice(field_terms=[field], xlim = xlim, ylim = ylim, zlim = zlim, tidx = tidx)
     dims = ds.sizes
     ndims = len(dims)
@@ -102,6 +102,8 @@ def _plot_instantaneous_field(save_folder, sim, *, tidx, field, xlim = [-5, 20],
         ds[field].imshow(ax = ax)
     if set_plot_lims:
         ax.set_ylim(plot_ylim)
+    if plot_zlim is not None:
+        ax.set_zlim(plot_zlim)
     plt.suptitle(suptitle)
     plt.title("TIDX: " + str(tidx))
     plt.savefig(os.path.join(save_folder, field + '_' + str(tidx) + '.png'))
@@ -110,7 +112,7 @@ def _plot_instantaneous_field(save_folder, sim, *, tidx, field, xlim = [-5, 20],
 
 def plot_instantaneous_field(sim_folder, runid, tidx = 0, field = "u", **kwargs):
     run_folder = au.get_run_folder(sim_folder, runid)
-    sim = pio.BudgetIO(run_folder, padeops = True, runid = runid, normalize_origin="turbine")
+    sim = pio.BudgetIO(run_folder, padeops = True, runid = 0, normalize_origin="turbine")
     save_folder = run_folder
     if tidx == "all":
         save_folder = os.path.join(run_folder, field + "_plots")

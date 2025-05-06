@@ -75,10 +75,9 @@ for (k, folder) in enumerate(folders):
         nx, ny, nz = [256] * len(ids), [128] * len(ids), [128] * len(ids)
         useCorrection = [True] * len(ids)
     elif k == 9:
-        ids,surge_freq,surge_amplitude,pitch_amplitude,dt,filterWidth = zip(*rows)
+        ids,cT,surge_freq,surge_amplitude,pitch_amplitude,dt,filterWidth = zip(*rows)
         nx, ny, nz = [256] * len(ids), [128] * len(ids), [128] * len(ids)
         useCorrection = [True] * len(ids)
-        cT = [1.0] * len(ids)
 
     # get data from runs
     for (i, id_str) in enumerate(ids):

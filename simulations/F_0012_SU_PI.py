@@ -33,6 +33,7 @@ single_inputs = dict(
         # if not provided, default_inputs will be used
         useCorrection = True,
         cT = 1.0,
+        zLoc = 5.0
     ),
     run = dict(
         # always need to provide the filepaths (no defaults)
@@ -40,23 +41,48 @@ single_inputs = dict(
         problem_name = "AD_coriolis_shear",
         job_name = "ct_effects",
         # if not provided, default_inputs will be used
-        n_hrs = 2,
+        n_hrs = 1.25,
     )
 )
+
+cT = [1.0, 4.0]
 
 sf = [0.1, 0.5, 1.0]
 sa = [0.1, 0.3, 0.5]
 pa = [1.0, 3.0, 5.0]
-surge_movement_iter = itertools.filterfalse( lambda x: x[0] == 1.0 and x[1] == 0.5, itertools.product(sf, sa, [0]))
-pitch_movement_iter = itertools.filterfalse( lambda x: x[0] == 1.0 and x[2] == 5.0, itertools.product(sf, [0], pa))
-movement_iter = itertools.chain.from_iterable([surge_movement_iter, pitch_movement_iter])
+nsf = len(sf)
+nsa = len(sa)
+npa = len(pa)
 
-dt = [ju.find_min_dt(1.0, nx, ny, nz, 1.0, single_inputs, v = 0.0, w = 0.0)]
+high_sf = [2.0]
+high_sa = [1.0]
+high_pa = [10.0]
+
+# intial range
+low_freq_dt = [ju.find_min_dt(1.0, nx, ny, nz, 1.0, single_inputs, v = 0.0, w = 0.0)]
+surge_movement_iter = itertools.filterfalse( lambda x: x[0] == 1.0 and x[1] == 0.5, itertools.product(sf, sa, [0], low_freq_dt))
+pitch_movement_iter = itertools.filterfalse( lambda x: x[0] == 1.0 and x[2] == 5.0, itertools.product(sf, [0], pa, low_freq_dt))
+# low_freq_dt = ju.find_min_dt(1.0, nx, ny, nz, 1.0, single_inputs, v = 0.0, w = 0.0)
+# dt = [low_freq_dt] * (nsf * (nsa + npa) - 2) # previously ran f = 1.0, A = 0.5/5.0
+# higher amplitude previously run
+high_amp_surge_movement_iter = itertools.product(sf, high_sa, [0], low_freq_dt)
+high_amp_pitch_movement_iter = itertools.product(sf, [0], high_pa, low_freq_dt)
+# dt = dt + [low_freq_dt] * (nsf + nsf)
+# higher freqency previously run
+high_freq_dt = [ju.find_min_dt(1.0, nx, ny, nz, 2.0, single_inputs, v = 0.0, w = 0.0)]
+high_freq_surge_movement_iter = itertools.product(high_sf, sa + high_sa, [0], high_freq_dt)
+high_freq_pitch_movement_iter = itertools.product(high_sf, [0], pa + high_pa, high_freq_dt)
+# high_freq_dt = ju.find_min_dt(1.0, nx, ny, nz, 2.0, single_inputs, v = 0.0, w = 0.0)
+# dt = dt + [high_freq_dt] * ((nsa + 1) + (npa + 1))
+
+movement_iter = itertools.chain.from_iterable([surge_movement_iter, pitch_movement_iter,
+                                               high_amp_surge_movement_iter, high_amp_pitch_movement_iter,
+                                               high_freq_surge_movement_iter, high_freq_pitch_movement_iter])
+
+
 filterWidth = [ju.find_filter_width(single_inputs, nx = nx, ny = ny, nz = nz, factor = 1.5)]
-sim_params_iter = itertools.zip_longest(dt, filterWidth)
-
-varied_inputs = itertools.product(movement_iter, sim_params_iter)
-varied_header = ["surge_freq", "surge_amplitude", "pitch_amplitude", "dt", "filterWidth"]
+varied_inputs = itertools.product(cT, movement_iter, filterWidth)
+varied_header = ["cT", "surge_freq", "surge_amplitude", "pitch_amplitude", "dt", "filterWidth"]
 
 # for v in varied_inputs: 
 #     print(v)                                   

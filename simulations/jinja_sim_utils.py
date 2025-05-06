@@ -57,7 +57,7 @@ def find_min_dt(CFL, nx, ny, nz, sf, single_inputs, u = 1.0, v = 1.0, w = 1.0):
     if min_dt == math.inf:
         raise ValueError('Not all of u, v, and w should be zero.')
     if sf != 0:  # if the turbine has non-zero frequency (in the 2nd term of varied inputs), update timestep
-        min_dt = min(min_dt, 1/16)  # 16 timesteps per frequency
+        min_dt = min(min_dt, 1/(16 * sf))  # 16 timesteps per frequency
     return min_dt
 
 def get_h(nx, ny, nz, single_inputs):
