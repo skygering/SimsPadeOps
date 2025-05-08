@@ -137,3 +137,16 @@ def get_TI_fact(path, logfile, start_TIDX):
 def get_TI_inst(path, logfile, start_TIDX):
     log_file_dict = pio.query_logfile(os.path.join(path, logfile), search_terms=["TI_inst"], crop_equal = False)
     return np.average(log_file_dict["TI_inst"][start_TIDX:])
+
+# def get_instantaneous_data(sim_folder, runid, tidx = "all", field = "u", **kwargs):
+#     run_folder = get_run_folder(sim_folder, runid)
+#     sim = pio.BudgetIO(run_folder, padeops = True, runid = 0, normalize_origin="turbine")
+#     # first and second dimension 
+#     # 
+#     if tidx == "all"
+#         tidx_list = sim.unique_tidx()
+#         ntimesteps = len(tidx_list)
+#     else:
+#         tidx_list = [tidx]
+#         ntimesteps = 1
+#     for tidx_val in tidx_list:

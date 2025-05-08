@@ -88,18 +88,18 @@ def plot_suite_power(suite_folder, save = True, figsize = (9, 3)):
         plt.savefig(os.path.join(suite_folder, 'suite_cp.png'))
     return fig, ax
 
-def _plot_instantaneous_field(save_folder, sim, *, tidx, field, xlim = [-5, 20], ylim =  [-5, 5],  zlim = 0, suptitle = "", set_plot_lims = False, plot_ylim = [0, 1.2], plot_zlim = None):
+def _plot_instantaneous_field(save_folder, sim, *, tidx, field, xlim = [-5, 20], ylim =  [-5, 5],  zlim = 0, suptitle = "", set_plot_lims = False, plot_ylim = [0, 1.2], plot_zlim = None, colormap = "bwr"):
     ds = sim.slice(field_terms=[field], xlim = xlim, ylim = ylim, zlim = zlim, tidx = tidx)
     dims = ds.sizes
     ndims = len(dims)
     fig, ax = plt.subplots()
     if ndims == 1:
         dim_name = list(ds.sizes.keys())[0]
-        ax.plot(ds[dim_name], ds[field])
+        ax.plot(ds[dim_name], ds[field], cmap = colormap)
         ax.set_xlabel(dim_name + '/D')
         ax.set_ylabel(field)
     elif ndims == 2:
-        ds[field].imshow(ax = ax)
+        ds[field].imshow(ax = ax, cmap = colormap)
     if set_plot_lims:
         ax.set_ylim(plot_ylim)
     if plot_zlim is not None:
