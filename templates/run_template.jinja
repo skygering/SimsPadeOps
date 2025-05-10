@@ -2,9 +2,9 @@
 #SBATCH -J {{ job_name }}            # Job name
 #SBATCH -o {{ job_path }}.o%j        # Name of stdout output file
 #SBATCH -e {{ job_path }}.e%j        # Name of stderr error file
-#SBATCH -p skx                       # Queue (partition) name
+#SBATCH -p {{ queue }}                       # Queue (partition) name
 #SBATCH -N {{ n_nodes }}             # Total # of nodes
-#SBATCH --ntasks-per-node 48         # Total # of cores
+#SBATCH --ntasks-per-node {{tasks}}  # Total # of cores
 #SBATCH -t {{ n_hrs }}:00:00         # Run time (hh:mm:ss)
 #SBATCH --mail-user=sgering@mit.edu  # Email ID  
 #SBATCH --mail-type=all              # Send email at begin and end of job

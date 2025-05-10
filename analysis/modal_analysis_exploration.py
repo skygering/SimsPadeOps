@@ -26,10 +26,13 @@ def get_data(folder, idx, suptitle, file_extension, turb_pos):
     tidx_list = tidx_list[1:]
     ds = sim.slice(field_terms=fields, xlim = xlim, ylim = ylim, zlim = zlim, tidx = 0)
     for tidx in tidx_list:
-        ds_tidx = sim.slice(field_terms=fields, xlim = xlim, ylim = ylim, zlim = zlim, tidx = tidx)
-        ds = xr.concat([ds, ds_tidx], dim = "time")
+        try:
+            ds_tidx = sim.slice(field_terms=fields, xlim = xlim, ylim = ylim, zlim = zlim, tidx = tidx)
+            ds = xr.concat([ds, ds_tidx], dim = "time")
+        except:
+            break
     print("Save Data")
-    ds.to_netcdf(os.path.join(modal_folder, file_extension + "_data_r_256_t_0.nc"))
+    ds.to_netcdf(os.path.join(modal_folder, file_extension + "_data.nc"))
     # make the plots
     print("Make Plots")
     save_folder = os.path.join(run_folder, fields[0] + "_" + fields[1] + "_plots")
@@ -40,10 +43,13 @@ def get_data(folder, idx, suptitle, file_extension, turb_pos):
     n = len(tidx_list)
     sidx = round(n * 0.5)
     eidx = round(n * 0.75)
-    for i, tidx in enumerate(tidx_list[sidx:eidx]):
-        print("Plot " + str(tidx))
+    for i in range(sidx, eidx + 1):
+        print("Plot " + str(tidx_list[i]))
         fig, (ax0, ax1) = plt.subplots(2, 1, figsize=(8, 5))
-        ds_i = ds.isel(time=i)
+        try:
+            ds_i = ds.isel(time=i)
+        except:
+            break
         # plot velocity
         im0 = ds_i[fields[0]].imshow(ax = ax0, cmap = colormap, vmin = 1 - u_range, vmax = 1 + u_range, cbar = False)
         divider0 = make_axes_locatable(ax0)
@@ -87,9 +93,12 @@ modal_folder = os.path.join(au.DATA_PATH, "F_0013_X_SU_PI_Files")
 # pitching_idx = 2
 # pitching_ds = get_data(modal_folder, pitching_idx, "Pitching Turbine", "pitching", (5.0, 5.0, 2.5))
 
-surging_pitching_idx = 3
-surging_pitching_ds = get_data(modal_folder, surging_pitching_idx, "Surging and Pitching Turbine", "surging_pitching", (5.0, 5.0, 5.0))
+# surging_pitching_idx = 3
+# surging_pitching_ds = get_data(modal_folder, surging_pitching_idx, "Surging and Pitching Turbine", "surging_pitching", (5.0, 5.0, 5.0))
 
-# total_ds = xr.concat([stationary_ds, surging_ds, pitching_ds, surging_pitching_ds], pd.Index(["stationary", "surging", "pitching", "surging_pitching"], name="movement"))
-# total_ds = total_ds.assign_attrs(resolution="(256, 128, 128)", turbulence="NA")
-# total_ds.to_netcdf(os.path.join(modal_folder, "data_r_256_t_0.nc"))
+modal_folder = os.path.join(au.DATA_PATH, "F_0014_X_SU_PI_Files")
+
+# stationary_idx = 0
+# get_data(modal_folder, 8, "(nx, ny, nz) = (512, 256, 256) and dt = 0.012", "run08", (5.0, 2.5, 2.5))
+save_folder = os.path.join(modal_folder, "Sim_0005/u_p_plots")
+qmplt.film_instantaneous_field(save_folder, fps = 20, video_name = "velocity_pressure_05.mp4")

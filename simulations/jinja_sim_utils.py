@@ -30,7 +30,16 @@ def safe_mkdir(dst, quiet=False):
         print("\tCreated directory", dst_path.resolve())
     return dst_path
 
-def get_nnodes(inputs):
+def get_n_tasks_per_node(queue):
+    if queue == "skx":
+       tasks = 48
+    elif queue == "spr":
+        tasks = 112
+    else:
+        raise ValueError(f"{queue} doesn't have a known number of --ntasks-per-node.")
+    return tasks
+
+def get_nnodes(inputs, queue):
     """
     Computes the ideal number of nodes for PadeOps.
     Rounds to an even number.
@@ -38,9 +47,10 @@ def get_nnodes(inputs):
     nx = inputs["nx"]
     ny = inputs["ny"]
     nz = inputs["nz"]
+    tasks_per_node = get_n_tasks_per_node(queue)
     # compute n_nodes; round to nearest even number
-    n_nodes = 2 * round(nx * ny * nz / 32**3 / TASKS_PER_NODE / 2)
-    return n_nodes
+    n_nodes = 2 * round(nx * ny * nz / 32**3 / tasks_per_node / 2)
+    return n_nodes, tasks_per_node
 
 def find_min_dt(CFL, nx, ny, nz, sf, single_inputs, u = 1.0, v = 1.0, w = 1.0):
     """
@@ -110,11 +120,12 @@ def write_turb(new_inputs, curr_inputs, template_path, out_turb_path, quiet, n_t
         print(f"\tDone writing ActuatorDisk_{n_turbs:04d}_input.inp file")
     return
 
-def write_run(new_inputs, curr_inputs, template_path, out_path, quiet, n_nodes, node_cap):
+def write_run(new_inputs, curr_inputs, template_path, out_path, quiet, n_nodes, node_cap, tasks_per_node):
     update_inputs(new_inputs, curr_inputs)
     curr_inputs["inputdir"] = str(out_path)  # add the output path for input files for template
     curr_inputs["n_hrs"] = int(curr_inputs["n_hrs"])
     curr_inputs["n_nodes"] = int(max(min(n_nodes, node_cap), 1))
+    curr_inputs["tasks"] = tasks_per_node
     curr_inputs["job_path"] = out_path.joinpath(curr_inputs["job_name"])
     fill_template(curr_inputs, template_path, out_path.joinpath(curr_inputs["run_file_name"]))
     if not quiet:
@@ -188,7 +199,9 @@ def write_padeops_files(new_inputs, *, default_input,
         run_inputfile = interaction_file
     # load run template and write .sh file to run simulation
     new_inputs["run"]["inputfile"] = run_inputfile
-    write_run(new_inputs["run"], curr_inputs["run"], Path(run_template), inputdir, quiet, get_nnodes(curr_inputs["sim"]), node_cap)
+    queue = new_inputs["run"]["queue"] if "queue" in new_inputs["run"] else curr_inputs["run"]["queue"]
+    nnodes, tasks_per_node = get_nnodes(curr_inputs["sim"], queue)
+    write_run(new_inputs["run"], curr_inputs["run"], Path(run_template), inputdir, quiet, nnodes, node_cap, tasks_per_node)
     return
 
 def _prep_padeops_suite_inputs(varied_inputs, varied_header, nested, default_input):
