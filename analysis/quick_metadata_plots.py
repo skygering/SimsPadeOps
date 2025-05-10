@@ -9,7 +9,6 @@ import csv
 import math
 import statistics
 import numpy as np
-import cv2
 import glob
 from pathlib import Path
 import moviepy.video.io.ImageSequenceClip

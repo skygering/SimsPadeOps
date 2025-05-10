@@ -9,7 +9,7 @@ from scipy.signal import find_peaks
 import statistics
 
 
-DATA_PATH = os.environ['SCRATCH'] + "/Data/"
+# DATA_PATH = os.environ['SCRATCH'] + "/Data/"
 
 def arg_parser(arg_list = ["write_dir", "filename"]):
     parser = argparse.ArgumentParser()
