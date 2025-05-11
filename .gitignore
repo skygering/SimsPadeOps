@@ -36,4 +36,7 @@ simulations/*
 !simulations/*.py
 !simulations/*.md
 
+# analysis folders
+analysis/spod_results/*
+
 */__pycache__
