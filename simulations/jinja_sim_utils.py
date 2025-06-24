@@ -237,7 +237,8 @@ def _prep_padeops_suite_inputs(varied_inputs, varied_header, nested, default_inp
                 elif "interaction" in inputs and row in inputs["interaction"]:
                     input_type_list.append("interaction")
                 else:
-                    raise Exception(f"Key {row} isn't a valid input to the simulation as it isn't in the provided default file.")
+                    err_msg = "Key " + str(row) + " isn't a valid input to the simulation as it isn't in the provided default file."
+                    raise Exception(err_msg)
             row_header += varied_header
     return suite_iter, row_header, input_type_list
 

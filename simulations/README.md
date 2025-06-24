@@ -17,7 +17,7 @@ Here is a list of the simulations with the ID, as well as the keys. I have also 
 
 ## Fixed-Bottom Simulations
 
-Each of the floating turbine simulation files will start with an `B`. After this, it will be followed by an ID `XXXX` for the number of the simulation.
+Each of the fixed bottom turbine simulation files will start with an `B`. After this, it will be followed by an ID `XXXX` for the number of the simulation.
 
 | ID   | Notes | Date |
 |------|-------|------|

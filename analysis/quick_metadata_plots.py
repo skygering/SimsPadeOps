@@ -94,7 +94,7 @@ def _plot_instantaneous_field(save_folder, sim, *, tidx, field, xlim = [-5, 20],
     fig, ax = plt.subplots()
     if ndims == 1:
         dim_name = list(ds.sizes.keys())[0]
-        ax.plot(ds[dim_name], ds[field], cmap = colormap)
+        ax.plot(ds[dim_name], ds[field])
         ax.set_xlabel(dim_name + '/D')
         ax.set_ylabel(field)
     elif ndims == 2:

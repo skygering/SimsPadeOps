@@ -34,7 +34,7 @@ single_inputs = dict(
         Lz = 5,
         t_dataDump = 10,
         CFL = -1,
-        tstop = 1500,
+        tstop = 300,  # this needs to be considered further and was changed to run the last two sims needed
     ),
     turb = dict(  # can only provide one turbine right now - update when needed
         # if not provided, default_inputs will be used
@@ -61,7 +61,7 @@ ny = [64, 128, 256]
 nz = [64, 128, 256]
 filterWidth = [ju.find_filter_width(single_inputs, nx = nx[i], ny = ny[i], nz = nz[i], factor = 2.0) for i in range(len(nx))]
 dt = [ju.find_min_dt(1.0, nx[i], ny[i], nz[i], 0.1, single_inputs, v = 0.0, w = 0.0) for i in range(len(nx))]
-dt = dt + [0.5 * t for t in dt] + [0.25 * t for t in dt] + [2.0 * t for t in dt]
+dt = dt + [0.5 * t for t in dt] + [0.25 * t for t in dt] + [0.125 * t for t in dt]
 nt = int(len(dt) / len(nx))
 varied_inputs = itertools.zip_longest(nx * nt, ny * nt, nz * nt, dt, filterWidth * nt)
 varied_header = ["nx", "ny", "nz", "dt", "filterWidth"]
@@ -71,5 +71,5 @@ varied_header = ["nx", "ny", "nz", "dt", "filterWidth"]
 
 # write needed simulation files
 ju.write_padeops_suite(single_inputs, varied_inputs, varied_header = varied_header, default_input = default_inputs,
-    sim_template = sim_template, run_template = run_template, turb_template = turb_template, node_cap = 8)
+    sim_template = sim_template, run_template = run_template, turb_template = turb_template)
 
