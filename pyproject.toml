@@ -1,0 +1,25 @@
+[tool.poetry]
+package-mode = false
+name = "simspadeops"
+version = "0.1.0"
+description = ""
+authors = ["Skylar Gering <sgering@mit.edu>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.11,<4.0"
+ipykernel = "^6.29.5"
+numpy = "^2.3.1"
+matplotlib = "^3.10.3"
+padeopsio = {path = "/work2/10264/sgering/stampede3/src/padeopsIO"}
+pandas = "^2.3.0"
+seaborn = "^0.13.2"
+pygcs = "^1.1.1"
+moviepy = "^2.2.1"
+unified-momentum-model = {path = "/work2/10264/sgering/stampede3/src/Unified-Momentum-Model"}
+streamtube = {path = "/work2/10264/sgering/stampede3/src/streamtube"}
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
