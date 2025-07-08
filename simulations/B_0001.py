@@ -44,8 +44,12 @@ single_inputs = dict(
         queue = "spr"
     )
 )
-# Varied values
-cT = [1.0, 4.0]
+# Varied CT'
+cT = [1.0, 4.0, 1.33, 4]
+do_time_budgets = [False, False, True, True]
+cT_vals_iter = itertools.zip_longest(cT, do_time_budgets)
+
+# Varied yaw and tild
 yaw = [0, 10, 20, 30]
 tilt = [0, 10, 20, 30]
 
@@ -53,8 +57,8 @@ tilt = [0, 10, 20, 30]
 factor = 1.5
 filterWidth = [ju.find_filter_width(single_inputs, nx = nx, ny = ny, nz = nz, factor = factor)]
 
-varied_inputs = itertools.product(cT, yaw, tilt, filterWidth)
-varied_header = ["cT", "yaw", "tilt", "filterWidth"]
+varied_inputs = itertools.product(cT_vals_iter, yaw, tilt, filterWidth)
+varied_header = ["cT", "do_time_budgets", "yaw", "tilt", "filterWidth"]
 
 # for v in varied_inputs:
 #     print(v)   

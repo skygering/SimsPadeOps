@@ -134,17 +134,17 @@ t_dumpKSprep                  = 10             ! Dumping Frequency for KS files
 /
 /
 &BUDGET_TIME_AVG
-do_budgets            = .FALSE.                 ! Perform budget calculations? 
-budgetType            = 1                      ! See type descriptions in budget_time_avg.F90
-budgets_dir           = "/scratch/08445/tg877441/CNBL/prod_04_1Kkm/u0"   ! Write in default output directory
-tidx_compute          = 1                      ! How often should budgets be computed?  
-tidx_dump             = 1000                   ! How often should budget files be written to disk? 
-tidx_budget_start     = -1                     ! Start budget computation from this timestep onward
-time_budget_start     = 90.d0
-restart_budgets       = .FALSE.                ! use existing budget file to restart budget calculations? 
-restart_rid           = 1                      ! Restart budget file run index
-restart_tid           = 35000                  ! Restart budget file time index
-restart_counter       = 5544                   ! Restart budget file counter 
+do_budgets            = .{{ do_time_budgets|upper }}.                          ! Perform budget calculations? 
+budgetType            = {{ "%d"|format(time_budgetType|int) }}                              ! See type descriptions in budget_time_avg.F90
+budgets_dir           = "{{ outputdir }}"                                      ! Write in default output directory
+tidx_compute          = {{ "%d"|format(tidx_compute_time_budget|int) }}        ! How often should budgets be computed?  
+tidx_dump             = {{ "%d"|format(tidx_dump_time_budget|int) }}           ! How often should budget files be written to disk? 
+tidx_budget_start     = -1                                                     ! Start budget computation from this timestep onward
+time_budget_start     = {{ "%.3f"|format(time_budget_start|float)}}d0          ! Start budget computation from this time onward
+restart_budgets       = .FALSE.                                                ! use existing budget file to restart budget calculations? 
+restart_rid           = 1                                                      ! Restart budget file run index
+restart_tid           = 35000                                                  ! Restart budget file time index
+restart_counter       = 5544                                                   ! Restart budget file counter 
 /
 /
 &AD_CoriolisINPUT

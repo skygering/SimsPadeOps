@@ -15,7 +15,12 @@
         "useDynamicTurbine": true,
         "ADM_Type" : 5,
         "RunID" : 1,
-        "useWindTurbines" : true
+        "useWindTurbines" : true,
+        "do_time_budgets": false,
+        "time_budgetType": 0,
+        "tidx_compute_time_budget": 5,
+        "tidx_dump_time_budget": 1000,
+        "time_budget_start": 100
     },
     "turb": {
         "xLoc": 5,
