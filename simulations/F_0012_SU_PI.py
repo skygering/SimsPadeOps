@@ -84,10 +84,10 @@ filterWidth = [ju.find_filter_width(single_inputs, nx = nx, ny = ny, nz = nz, fa
 varied_inputs = itertools.product(cT, movement_iter, filterWidth)
 varied_header = ["cT", "surge_freq", "surge_amplitude", "pitch_amplitude", "dt", "filterWidth"]
 
-# for v in varied_inputs: 
-#     print(v)                                   
+for v in varied_inputs: 
+    print(v)                                   
 
 # write needed simulation files
-ju.write_padeops_suite(single_inputs, varied_inputs, varied_header = varied_header, default_input = default_inputs,
-    sim_template = sim_template, run_template = run_template, turb_template = turb_template, node_cap = 12)
+# ju.write_padeops_suite(single_inputs, varied_inputs, varied_header = varied_header, default_input = default_inputs,
+#     sim_template = sim_template, run_template = run_template, turb_template = turb_template, node_cap = 12)
 

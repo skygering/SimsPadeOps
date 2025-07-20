@@ -4,7 +4,7 @@ from pathlib import Path
 
 # The purpose of this simulation is to run fixed-bottom simulations with static yaw and tilt
 # to check my re-derivation of the UMM to include tilt. I will run a large sweep of yaw and tilt
-# angles, from -30 to 30.
+# angles, from 0 to 30.
 
 sim_template = ju.TEMPLATE_PATH.joinpath("sim_template.jinja")
 turb_template = ju.TEMPLATE_PATH.joinpath("turb_template.jinja")

@@ -23,6 +23,7 @@ sim_10_all_folder = os.path.join(au.DATA_PATH, "F_0010_X_SU_PI_Files")
 sim_10H_all_folder = os.path.join(au.DATA_PATH, "F_0010_SU_PI_H_Files")
 sim_11_all_folder = os.path.join(au.DATA_PATH, "F_0011_SU_PI_Files")
 sim_12_all_folder = os.path.join(au.DATA_PATH, "F_0012_SU_PI_Files")
+sim_12_cont_folder = os.path.join(au.DATA_PATH, "F_0012_SU_PI_Cont_Files")
 data_fn = os.path.join(sim_6_all_folder, 'collected_runs.csv')
 
 # # go through data and collect
@@ -33,7 +34,7 @@ df = pd.DataFrame(columns=['marker', 'nx', 'ny', 'filter', 'filterFactor', 'useC
                            'std_CT', 'std_an', 'std_Cp',
                            'skewness_CT', 'skewness_an', 'skewness_Cp',
                            'kurtosis_CT', 'kurtosis_an', 'kurtosis_Cp'])
-folders = (sim_4_X_folder, sim_4_SU_PI_folder, sim_5_all_folder, sim_6_all_folder, sim_8_all_folder, sim_9_all_folder, sim_10_all_folder, sim_10H_all_folder, sim_11_all_folder, sim_12_all_folder)
+folders = (sim_4_X_folder, sim_4_SU_PI_folder, sim_5_all_folder, sim_6_all_folder, sim_8_all_folder, sim_9_all_folder, sim_10_all_folder, sim_10H_all_folder, sim_11_all_folder, sim_12_all_folder, sim_12_cont_folder)
 row = 0
 for (k, folder) in enumerate(folders):
     rows, fields = mplts.get_sim_varied_params(folder)
@@ -74,7 +75,7 @@ for (k, folder) in enumerate(folders):
         ids,cT,dt,surge_freq,surge_amplitude,pitch_amplitude,filterWidth = zip(*rows)
         nx, ny, nz = [256] * len(ids), [128] * len(ids), [128] * len(ids)
         useCorrection = [True] * len(ids)
-    elif k == 9:
+    elif k == 9 or k == 10:
         ids,cT,surge_freq,surge_amplitude,pitch_amplitude,dt,filterWidth = zip(*rows)
         nx, ny, nz = [256] * len(ids), [128] * len(ids), [128] * len(ids)
         useCorrection = [True] * len(ids)
