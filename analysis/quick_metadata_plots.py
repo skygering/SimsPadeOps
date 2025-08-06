@@ -87,11 +87,11 @@ def plot_suite_power(suite_folder, save = True, figsize = (9, 3)):
         plt.savefig(os.path.join(suite_folder, 'suite_cp.png'))
     return fig, ax
 
-def _plot_instantaneous_field(save_folder, sim, *, tidx, field, xlim = [-5, 20], ylim =  [-5, 5],  zlim = 0, vmin = 0, vmax = 1, suptitle = "", set_plot_lims = False, plot_ylim = [0, 1.2], plot_zlim = None, colormap = "bwr"):
+def _plot_instantaneous_field(save_folder, sim, *, tidx, field, dpi = 100, xlim = [-5, 20], ylim =  [-5, 5],  zlim = 0, vmin = 0, vmax = 1, suptitle = "", set_plot_lims = False, plot_ylim = [0, 1.2], plot_zlim = None, colormap = "bwr"):
     ds = sim.slice(field_terms=[field], xlim = xlim, ylim = ylim, zlim = zlim, tidx = tidx)
     dims = ds.sizes
     ndims = len(dims)
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(dpi = dpi)
     if ndims == 1:
         dim_name = list(ds.sizes.keys())[0]
         ax.plot(ds[dim_name], ds[field])
@@ -147,13 +147,13 @@ def plot_requested_turb_power(ax, folder, runs, labels, zoom = None, **kwargs):
         run_folder = au.get_run_folder(folder, r)
         sim = pio.BudgetIO(run_folder, padeops = True, runid = 0)
         dt = sim.input_nml["input"]["dt"]
-        trans_tau = int(math.ceil(50 / dt) + 1)
+        trans_tau = 0#int(math.ceil(50 / dt) + 1)
         # TODO: ask Kirby if default should be "all", rather than None
         # as it was confusing and when it is saved as a file first, they all printed I think?
         try:
             power = sim.read_turb_power("all", turb=1)[trans_tau:]
             Cp = [au.power_to_Cp(p) for p in power]
-            time = [50 + dt * n for n in range(len(Cp))]
+            time = [0 + dt * n for n in range(len(Cp))]
             if zoom is not None:
                 time, Cp = au.x_zoom_plot(zoom, time, Cp)
             ax.plot(time, Cp, label = labels[i], **kwargs)

@@ -19,20 +19,23 @@ def arg_parser(arg_list = ["write_dir", "filename"]):
     return args
 
 def get_run_folder(sim_folder, runid):
+    print(runid)
     run_str = "Sim_000"
-    if runid > 9:
+    if runid > 99:
+        run_str = "Sim_0"
+    elif runid > 9:
         run_str = "Sim_00"
     run_str += str(runid)
     return os.path.join(sim_folder, run_str)
 
-def power_to_Cp(power, uinf = 1, rho = 1):
+def power_to_Cp(power, uinf = 1, rho = 1, tilt = 0):
     """
     Calculate Cp from PadeOps turbine power input for simple momentum theory of an actuator disk
     """
-    return power / (0.5 * rho * math.pi * 0.5**2 * uinf**3)
+    return power / (0.5 * rho * math.pi * 0.5**2 * (uinf * np.cos(tilt))**3)
 
-def vel_to_a(udisk, uinf = 1, alg = "classical"):
-    a = 1 - (udisk / uinf)
+def vel_to_a(udisk, uinf = 1, tilt = 0):
+    a = 1 - (udisk / (uinf * np.cos(tilt)))
     # TODO: want to remove the turbine motion from both terms
     # urel = uturb + udisk
     # uinf_adjusted = uinf - uturb
