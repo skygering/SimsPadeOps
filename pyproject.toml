@@ -16,7 +16,7 @@ pandas = "^2.3.0"
 seaborn = "^0.13.2"
 pygcs = "^1.1.1"
 moviepy = "^2.2.1"
-unified-momentum-model = { git = "https://github.com/Howland-Lab/Unified-Momentum-Model.git", branch = "sg/add_tilt"}
+unified-momentum-model = { git = "https://github.com/Howland-Lab/Unified-Momentum-Model.git"}
 streamtube = {git = "https://github.com/kirbyh/streamtube.git"}
 jinja2 = "^3.1.6"
 
