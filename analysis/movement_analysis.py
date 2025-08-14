@@ -6,11 +6,10 @@ import quick_metadata_plots as mplts
 import padeopsIO as pio
 import math
 from scipy.stats import describe
-from numpy import std
 import numpy as np
 import pandas as pd
-from matplotlib.lines import Line2D
 import glob
+import seaborn as sns
 
 def get_stats(Cp_vals, an_vals, cT_vals):
     # get statistics on calcualted values
@@ -20,7 +19,7 @@ def get_stats(Cp_vals, an_vals, cT_vals):
         Cp_stats = describe(Cp_vals)
         mean_info = [cT_stats.mean, an_stats.mean, Cp_stats.mean]
         variance_info = [cT_stats.variance, an_stats.variance, Cp_stats.variance]
-        std_info = [std(cT_vals), std(an_vals), std(Cp_vals)]
+        std_info = [np.std(cT_vals), np.std(an_vals), np.std(Cp_vals)]
         skewness_info = [cT_stats.skewness, an_stats.skewness, Cp_stats.skewness]
         kurtosis_info = [cT_stats.kurtosis, an_stats.kurtosis, Cp_stats.kurtosis]
     else:
@@ -37,10 +36,11 @@ rho = 1
 
 data_path = Path(au.DATA_PATH)
 sim_16_all_folder = os.path.join(au.DATA_PATH, "F_0016_SU_PI_Files")
-data_fn = os.path.join(sim_16_all_folder, 'collected_runs.csv')
+stats_data_fn = os.path.join(sim_16_all_folder, 'collected_runs_stats.csv')
+all_data_fn = os.path.join(sim_16_all_folder, 'collected_runs_all.csv')
 
 # # go through data and collect
-df = pd.DataFrame(columns=['marker', 'dt', 'nx', 'ny', 'filter', 'filterFactor', 'useCorrection', 'CT_prime', "turbulence",
+stats_df = pd.DataFrame(columns=['marker', 'dt', 'nx', 'ny', 'filter', 'filterFactor', 'useCorrection', 'CT_prime', "turbulence",
                            'surge_freq', 'surge_amplitude', 'pitch_amplitude',
                            'mean_CT_ground','mean_an_ground','mean_Cp_ground',
                            'std_CT_ground', 'std_an_ground', 'std_Cp_ground',
@@ -50,6 +50,8 @@ df = pd.DataFrame(columns=['marker', 'dt', 'nx', 'ny', 'filter', 'filterFactor',
                            'std_CT_turb', 'std_an_turb', 'std_Cp_turb',
                            'skewness_CT_turb', 'skewness_an_turb', 'skewness_Cp_turb',
                            'kurtosis_CT_turb', 'kurtosis_an_turb', 'kurtosis_Cp_turb'])
+
+all_df = []
 
 rows, fields = mplts.get_sim_varied_params(sim_16_all_folder)
 ids,cT,surge_freq,surge_amplitude,pitch_amplitude,dt,filterWidth = zip(*rows)
@@ -62,7 +64,7 @@ unique_ctp = np.unique(cT)
 unique_f = np.unique(surge_freq)
 unique_surge_A = np.unique(surge_amplitude)
 unique_pitch_A = np.unique(pitch_amplitude)
-# 
+
 
 # get data from runs
 row = 0
@@ -78,13 +80,15 @@ for (i, id_str) in enumerate(ids):
         assert len(power) > 0
         log_file = glob.glob(f'*_{id_str}.o*', root_dir = run_folder, recursive = False)
         if len(log_file) > 0:
-            log_file_dict = pio.query_logfile(os.path.join(run_folder, log_file[0]), search_terms=["tilt", "uturb"], crop_equal = False)
-            tilt, uturb = log_file_dict["tilt"][trans_tau:], log_file_dict["uturb"][trans_tau:]
+            log_file_dict = pio.query_logfile(os.path.join(run_folder, log_file[0]), search_terms=["tilt", "uturb", "Time"], crop_equal = False)
+            tilt, uturb, time = log_file_dict["tilt"][trans_tau:], log_file_dict["uturb"][trans_tau:], log_file_dict["Time"][trans_tau:]
+            tilt = np.deg2rad(tilt)
             if len(tilt) == 0:
                 tilt = np.zeros_like(uturb)
         else:
             tilt = np.zeros_like(uvel)
             uturb = np.zeros_like(uvel)
+            time = np.linspace(100, 100 + dt_i * len(power), len(power))
         udisk = uvel + uturb
         uwind = uinf - uturb
     except: 
@@ -95,7 +99,7 @@ for (i, id_str) in enumerate(ids):
         filter_width = float(filterWidth[i])
         dt_val = float(dt[i])
         cT_prime_val = float(cT[i])
-        # ground perspective
+        # # ground perspective
         Cp_vals_ground = power / (0.5 * rho * math.pi * 0.5**2 * (uinf * np.cos(tilt))**3)
         an_vals_ground = 1 - (udisk / (uinf * np.cos(tilt)))
         cT_vals_ground = [cT_prime_val * (1 - an)**2 for an in an_vals_ground]
@@ -103,6 +107,29 @@ for (i, id_str) in enumerate(ids):
         Cp_vals_turb = power / (0.5 * rho * math.pi * 0.5**2 * (uwind * np.cos(tilt))**3)
         an_vals_turb = 1 - (uvel / (uwind  * np.cos(tilt)))
         cT_vals_turb = [cT_prime_val * (1 - an)**2 for an in an_vals_turb]
+
+        # add values to a dataframe
+        nsamples = len(time)
+        surge_not_pitch = float(surge_amplitude[i]) != 0
+        if surge_not_pitch:
+            amp = float(surge_amplitude[i])
+            movement = "Surge"
+        else:
+            amp = float(pitch_amplitude[i])
+            movement = "Pitch"
+        df_temp = pd.DataFrame({
+            "Movement": np.full(nsamples, movement),
+            "Frequency": np.full(nsamples, float(surge_freq[i])),
+            "Amplitude": np.full(nsamples, amp),
+            "Thrust Coefficient": np.full(nsamples, cT_prime_val),
+            "Tilt": tilt,
+            "UTurb": uturb,
+            "Time": time,
+            "Power": power,
+            "UDisk": uvel,
+
+        })
+        all_df.append(df_temp)
 
         # save sim info
         if float(surge_freq[i]) == 0:
@@ -120,10 +147,11 @@ for (i, id_str) in enumerate(ids):
         simulation_info = [marker, dt_val, float(nx[i]), float(ny[i]), filter_width, filter_factor, useCorrection[i], cT_prime_val, turbulence, surge_freq[i], surge_amplitude[i], pitch_amplitude[i]]
         ground_frame_info = [*mean_info_ground, *std_info_ground, *skewness_info_ground, *kurtosis_info_ground]
         turb_frame_info =  [*mean_info_turb, *std_info_turb, *skewness_info_turb, *kurtosis_info_turb]
-        df.loc[row] = np.concatenate((simulation_info, ground_frame_info, turb_frame_info))
+        stats_df.loc[row] = np.concatenate((simulation_info, ground_frame_info, turb_frame_info))
         row += 1
 # saving the dataframe
-df.to_csv(data_fn)
+stats_df.to_csv(stats_data_fn)
 
-
-# TODO - add in plots that must be made while 
+# add in plots
+all_df = pd.concat(all_df, ignore_index=True)
+all_df.to_csv(all_data_fn)
