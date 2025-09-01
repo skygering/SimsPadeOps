@@ -11,6 +11,10 @@ import pandas as pd
 import glob
 import seaborn as sns
 
+get_stats = False
+get_all_points = False
+get_centerlines = True
+
 def get_stats(Cp_vals, an_vals, cT_vals):
     # get statistics on calcualted values
     if len(Cp_vals) > 0:
@@ -36,10 +40,12 @@ rho = 1
 
 data_path = Path(au.DATA_PATH)
 sim_16_all_folder = os.path.join(au.DATA_PATH, "F_0016_SU_PI_Files")
+
 stats_data_fn = os.path.join(sim_16_all_folder, 'collected_runs_stats.csv')
 all_data_fn = os.path.join(sim_16_all_folder, 'collected_runs_all.csv')
+surge_centerline_fn = os.path.join(sim_16_all_folder, 'surge_centerline.csv')
 
-# # go through data and collect
+# # # go through data and collect
 stats_df = pd.DataFrame(columns=['marker', 'dt', 'nx', 'ny', 'filter', 'filterFactor', 'useCorrection', 'CT_prime', "turbulence",
                            'surge_freq', 'surge_amplitude', 'pitch_amplitude',
                            'mean_CT_ground','mean_an_ground','mean_Cp_ground',
@@ -52,6 +58,7 @@ stats_df = pd.DataFrame(columns=['marker', 'dt', 'nx', 'ny', 'filter', 'filterFa
                            'kurtosis_CT_turb', 'kurtosis_an_turb', 'kurtosis_Cp_turb'])
 
 all_df = []
+surge_centerline_df = []
 
 rows, fields = mplts.get_sim_varied_params(sim_16_all_folder)
 ids,cT,surge_freq,surge_amplitude,pitch_amplitude,dt,filterWidth = zip(*rows)
@@ -59,99 +66,135 @@ nx, ny, nz = [256] * len(ids), [256] * len(ids), [256] * len(ids)
 useCorrection = [True] * len(ids)
 turbulence = [False] * len(ids)
 
-# create plots
-unique_ctp = np.unique(cT)
-unique_f = np.unique(surge_freq)
-unique_surge_A = np.unique(surge_amplitude)
-unique_pitch_A = np.unique(pitch_amplitude)
-
-
 # get data from runs
 row = 0
 for (i, id_str) in enumerate(ids):
     run_folder = os.path.join(sim_16_all_folder, "Sim_" + id_str)
-    sim = pio.BudgetIO(run_folder, padeops = True, runid = 0)
-    dt_i = dt[i]
-    trans_tau = int(math.ceil(100 / float(dt_i)) + 1)
+    sim = pio.BudgetIO(run_folder, padeops = True, runid = 0, normalize_origin="turbine")
+    surge_not_pitch = float(surge_amplitude[i]) != 0
+    if surge_not_pitch:
+        amp = float(surge_amplitude[i])
+        movement = "Surge"
+    else:
+        amp = float(pitch_amplitude[i])
+        movement = "Pitch"
     try:
-    # get all of the needed values
-        power = sim.read_turb_power("all", turb=1)[trans_tau:]
-        uvel = sim.read_turb_uvel("all", turb = 1)[trans_tau:]
+        tidx_vals, time_vals = sim.get_time_ax(return_tidx=True)
+        time_mask = time_vals > 100
+        time_vals, tidx_vals = time_vals[time_mask], tidx_vals[time_mask]
+        # get all of the needed values
+        power = sim.read_turb_power("all", turb=1)[time_mask]
+        uvel = sim.read_turb_uvel("all", turb = 1)[time_mask]
         assert len(power) > 0
         log_file = glob.glob(f'*_{id_str}.o*', root_dir = run_folder, recursive = False)
         if len(log_file) > 0:
-            log_file_dict = pio.query_logfile(os.path.join(run_folder, log_file[0]), search_terms=["tilt", "uturb", "Time"], crop_equal = False)
-            tilt, uturb, time = log_file_dict["tilt"][trans_tau:], log_file_dict["uturb"][trans_tau:], log_file_dict["Time"][trans_tau:]
+            log_file_dict = pio.query_logfile(os.path.join(run_folder, log_file[0]), search_terms=["tilt", "uturb", "Time", "TIDX", "delta"], crop_equal = False)
+            tidx = np.insert(log_file_dict["TIDX"], 0, 0)
+            tidx = tidx[time_mask]
+            if surge_not_pitch:
+                tilt = np.zeros_like(uvel)
+            else:
+                tilt = log_file_dict["tilt"][time_mask]
+            uturb, time, dx = log_file_dict["uturb"][time_mask], log_file_dict["Time"][time_mask], log_file_dict["delta"][time_mask]
             tilt = np.deg2rad(tilt)
             if len(tilt) == 0:
                 tilt = np.zeros_like(uturb)
         else:
             tilt = np.zeros_like(uvel)
             uturb = np.zeros_like(uvel)
-            time = np.linspace(100, 100 + dt_i * len(power), len(power))
+            time = time_vals[time_mask]
+            tidx = tidx_vals[time_mask]
+            dx = np.zeros_like(uvel)
+
         udisk = uvel + uturb
         uwind = uinf - uturb
     except: 
         continue
     else:
+        # Add needed timestep values to "all" dataframe
         print(id_str)
+        cT_prime_val = float(cT[i])
+        dt_val = float(dt[i])
         h = ((25 / float(nx[i]))**2 + 2 * (10 / float(ny[i]))**2)**(1/2)
         filter_width = float(filterWidth[i])
-        dt_val = float(dt[i])
-        cT_prime_val = float(cT[i])
-        # # ground perspective
-        Cp_vals_ground = power / (0.5 * rho * math.pi * 0.5**2 * (uinf * np.cos(tilt))**3)
-        an_vals_ground = 1 - (udisk / (uinf * np.cos(tilt)))
-        cT_vals_ground = [cT_prime_val * (1 - an)**2 for an in an_vals_ground]
-        # turbine perspective
-        Cp_vals_turb = power / (0.5 * rho * math.pi * 0.5**2 * (uwind * np.cos(tilt))**3)
-        an_vals_turb = 1 - (uvel / (uwind  * np.cos(tilt)))
-        cT_vals_turb = [cT_prime_val * (1 - an)**2 for an in an_vals_turb]
+
+        if get_stats:
+            # # ground perspective
+            Cp_vals_ground = power / (0.5 * rho * math.pi * 0.5**2 * (uinf * np.cos(tilt))**3)
+            an_vals_ground = 1 - (udisk / (uinf * np.cos(tilt)))
+            cT_vals_ground = [cT_prime_val * (1 - an)**2 for an in an_vals_ground]
+            # turbine perspective
+            Cp_vals_turb = power / (0.5 * rho * math.pi * 0.5**2 * (uwind * np.cos(tilt))**3)
+            an_vals_turb = 1 - (uvel / (uwind  * np.cos(tilt)))
+            cT_vals_turb = [cT_prime_val * (1 - an)**2 for an in an_vals_turb]
+
+            if float(surge_freq[i]) == 0:
+                marker = "o"
+            elif float(surge_amplitude[i]) != 0:
+                marker = "s"
+            else:
+                marker = "^"
+            filter_factor = round(filter_width / h, 3)
+            turbulence = False
+
+            mean_info_ground, std_info_ground, variance_info_ground, skewness_info_ground, kurtosis_info_ground = get_stats(Cp_vals_ground, an_vals_ground, cT_vals_ground)
+            mean_info_turb, std_info_turb, variance_info_turb, skewness_info_turb, kurtosis_info_turb = get_stats(Cp_vals_turb, an_vals_turb, cT_vals_turb)
+
+            simulation_info = [marker, dt_val, float(nx[i]), float(ny[i]), filter_width, filter_factor, useCorrection[i], cT_prime_val, turbulence, surge_freq[i], surge_amplitude[i], pitch_amplitude[i]]
+            ground_frame_info = [*mean_info_ground, *std_info_ground, *skewness_info_ground, *kurtosis_info_ground]
+            turb_frame_info =  [*mean_info_turb, *std_info_turb, *skewness_info_turb, *kurtosis_info_turb]
+            stats_df.loc[row] = np.concatenate((simulation_info, ground_frame_info, turb_frame_info))
+            row += 1
 
         # add values to a dataframe
-        nsamples = len(time)
-        surge_not_pitch = float(surge_amplitude[i]) != 0
-        if surge_not_pitch:
-            amp = float(surge_amplitude[i])
-            movement = "Surge"
-        else:
-            amp = float(pitch_amplitude[i])
-            movement = "Pitch"
-        df_temp = pd.DataFrame({
-            "Movement": np.full(nsamples, movement),
-            "Frequency": np.full(nsamples, float(surge_freq[i])),
-            "Amplitude": np.full(nsamples, amp),
-            "Thrust Coefficient": np.full(nsamples, cT_prime_val),
-            "Tilt": tilt,
-            "UTurb": uturb,
-            "Time": time,
-            "Power": power,
-            "UDisk": uvel,
+        if get_all_points:
+            nsamples = len(time)
+            df_temp = pd.DataFrame({
+                "Movement": np.full(nsamples, movement),
+                "Frequency": np.full(nsamples, float(surge_freq[i])),
+                "Amplitude": np.full(nsamples, amp),
+                "Thrust Coefficient": np.full(nsamples, cT_prime_val),
+                "Tilt": tilt,
+                "UTurb": uturb,
+                "DeltaX": dx,
+                "Time": time,
+                "TIDX": tidx,
+                "Power": power,
+                "UDisk": uvel,
 
-        })
-        all_df.append(df_temp)
+            })
+            all_df.append(df_temp)
 
-        # save sim info
-        if float(surge_freq[i]) == 0:
-            marker = "o"
-        elif float(surge_amplitude[i]) != 0:
-            marker = "s"
-        else:
-            marker = "^"
-        filter_factor = round(filter_width / h, 3)
-        turbulence = False
+        # add surge centerline to dataframe
+        if get_centerlines and surge_not_pitch:
+            field_tidx_vals = sim.unique_tidx()
+            field_time_vals = sim.unique_times()
+            for (j, field_tidx) in enumerate(field_tidx_vals):
+                field_time = field_time_vals[j]
+                if field_time > 200:
+                    ds = sim.slice(field_terms=["u", "x"], xlim = [-4, 4], ylim = 0, zlim = 0, tidx = field_tidx)
+                    nsamples = len(ds.x)
+                    field_uturb = uturb[np.where(tidx_vals == field_tidx)[0][0]]
+                    centerline_temp = pd.DataFrame({
+                        "Frequency": np.full(nsamples, float(surge_freq[i])),
+                        "Amplitude": np.full(nsamples, amp),
+                        "Thrust Coefficient": np.full(nsamples, cT_prime_val),
+                        "Time": np.full(nsamples, field_time),
+                        "TIDX": np.full(nsamples, field_tidx),
+                        "xVals": ds.x,
+                        "uVals": ds.u,
+                        "UTurb": np.full(nsamples, field_uturb),
+                    })
+                    surge_centerline_df.append(centerline_temp)
 
-        mean_info_ground, std_info_ground, variance_info_ground, skewness_info_ground, kurtosis_info_ground = get_stats(Cp_vals_ground, an_vals_ground, cT_vals_ground)
-        mean_info_turb, std_info_turb, variance_info_turb, skewness_info_turb, kurtosis_info_turb = get_stats(Cp_vals_turb, an_vals_turb, cT_vals_turb)
+# saving the dataframes
+if get_stats:
+    stats_df.to_csv(stats_data_fn)
 
-        simulation_info = [marker, dt_val, float(nx[i]), float(ny[i]), filter_width, filter_factor, useCorrection[i], cT_prime_val, turbulence, surge_freq[i], surge_amplitude[i], pitch_amplitude[i]]
-        ground_frame_info = [*mean_info_ground, *std_info_ground, *skewness_info_ground, *kurtosis_info_ground]
-        turb_frame_info =  [*mean_info_turb, *std_info_turb, *skewness_info_turb, *kurtosis_info_turb]
-        stats_df.loc[row] = np.concatenate((simulation_info, ground_frame_info, turb_frame_info))
-        row += 1
-# saving the dataframe
-stats_df.to_csv(stats_data_fn)
+if get_all_points:
+    all_df = pd.concat(all_df, ignore_index=True)
+    all_df.to_csv(all_data_fn)
 
-# add in plots
-all_df = pd.concat(all_df, ignore_index=True)
-all_df.to_csv(all_data_fn)
+if get_centerlines:
+    surge_centerline_df = pd.concat(surge_centerline_df, ignore_index = True)
+    surge_centerline_df.to_csv(surge_centerline_fn)
