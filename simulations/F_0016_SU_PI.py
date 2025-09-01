@@ -44,7 +44,7 @@ single_inputs = dict(
         problem_name = "AD_coriolis_shear",
         job_name = "ct_effects",
         # if not provided, default_inputs will be used
-        n_hrs = 3,
+        n_hrs = 5,
         queue = "spr"
     )
 )
@@ -58,12 +58,21 @@ pa = [4.0, 8.0, 12.0, 16.0, 20.0]
 surging_cases = itertools.product(sf, sa, [0.0])
 pitching_cases = itertools.product(sf, [0.0], pa)
 movement_iter = itertools.chain.from_iterable([surging_cases, pitching_cases])
-
 dt = [ju.find_min_dt(1.0, nx, ny, nz, max(sf), single_inputs, v = 0.0, w = 0.0)]
 filterWidth = [ju.find_filter_width(single_inputs, nx = nx, ny = ny, nz = nz, factor = 2.5)]
+varied_inputs_normal = itertools.product(cT, movement_iter, dt, filterWidth)
 
-varied_inputs = itertools.product(cT, movement_iter, dt, filterWidth)
+cT = [1.33]
+small_sf = [0.05, 0.1]
+small_sa = [0.05, 0.1]
+small_pa = [0.5, 1.0]
+small_surging_cases = itertools.product(small_sf, small_sa, [0.0])
+small_pitching_cases = itertools.product(small_sf, [0.0], small_pa)
+small_movement_iter = itertools.chain.from_iterable([small_surging_cases, small_pitching_cases])
+varied_inputs_small = itertools.product(cT, small_movement_iter, dt, filterWidth)
+
 varied_header = ["cT", "surge_freq", "surge_amplitude", "pitch_amplitude", "dt", "filterWidth"]
+varied_inputs = itertools.chain.from_iterable([varied_inputs_normal, varied_inputs_small])
 
 # for v in varied_inputs: 
 #     print(v)                                   
