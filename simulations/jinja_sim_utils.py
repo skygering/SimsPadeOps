@@ -120,12 +120,12 @@ def write_turb(new_inputs, curr_inputs, template_path, out_turb_path, quiet, n_t
         print(f"\tDone writing ActuatorDisk_{n_turbs:04d}_input.inp file")
     return
 
-def write_run(new_inputs, curr_inputs, template_path, out_path, quiet, n_nodes, node_cap, tasks_per_node):
+def write_run(new_inputs, curr_inputs, template_path, out_path, quiet, n_nodes, node_cap, tasks_per_node, task_cap):
     update_inputs(new_inputs, curr_inputs)
     curr_inputs["inputdir"] = str(out_path)  # add the output path for input files for template
     curr_inputs["n_hrs"] = int(curr_inputs["n_hrs"])
     curr_inputs["n_nodes"] = int(max(min(n_nodes, node_cap), 1))
-    curr_inputs["tasks"] = tasks_per_node
+    curr_inputs["tasks"] = int(max(min(tasks_per_node, task_cap), 1))
     curr_inputs["job_path"] = out_path.joinpath(curr_inputs["job_name"])
     fill_template(curr_inputs, template_path, out_path.joinpath(curr_inputs["run_file_name"]))
     if not quiet:
@@ -168,7 +168,7 @@ def write_interaction(new_inputs, curr_inputs, template_path, out_path, quiet):
 
 def write_padeops_files(new_inputs, *, default_input,
     sim_template, run_template, turb_template = None, hit_template = None, interaction_template = None,
-    n_turbs = 1, quiet = False, node_cap = 128
+    n_turbs = 1, quiet = False, node_cap = 128, task_cap = 112,
 ):
     # load default parameters
     with Path(default_input).open(mode = 'r') as file:
@@ -201,7 +201,7 @@ def write_padeops_files(new_inputs, *, default_input,
     new_inputs["run"]["inputfile"] = run_inputfile
     queue = new_inputs["run"]["queue"] if "queue" in new_inputs["run"] else curr_inputs["run"]["queue"]
     nnodes, tasks_per_node = get_nnodes(curr_inputs["sim"], queue)
-    write_run(new_inputs["run"], curr_inputs["run"], Path(run_template), inputdir, quiet, nnodes, node_cap, tasks_per_node)
+    write_run(new_inputs["run"], curr_inputs["run"], Path(run_template), inputdir, quiet, nnodes, node_cap, tasks_per_node, task_cap)
     return
 
 def _prep_padeops_suite_inputs(varied_inputs, varied_header, nested, default_input):

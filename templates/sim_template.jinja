@@ -147,6 +147,13 @@ restart_tid           = 35000                                                  !
 restart_counter       = 5544                                                   ! Restart budget file counter 
 /
 /
+&BUDGET_MULTI_PHASE_AVG
+do_budgets            = .{{ do_multi_phase_budgets|upper }}.
+phases                = {% for val in phases %}{{ val }}d0{% if not loop.last %}, {% endif %}{% endfor %}
+nphases               = {{ "%d"|format(phases | length) }}
+tol                   = {{ "%.6f" | format(phase_tol|float)}}d0           
+/
+/
 &AD_CoriolisINPUT
 Lx                            =  {{ "%0.8f"|format(Lx|float) }}d0      ! Domain Length (appropriate dimesnions/non-dimensionalized)
 Ly                            =  {{ "%0.8f"|format(Ly|float) }}d0       ! Domain Width  (appropriate dimesnions/non-dimensionalized)

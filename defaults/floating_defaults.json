@@ -18,9 +18,12 @@
         "useWindTurbines" : true,
         "do_time_budgets": false,
         "time_budgetType": 0,
-        "tidx_compute_time_budget": 5,
+        "tidx_compute_time_budget": 1,
         "tidx_dump_time_budget": 1000,
-        "time_budget_start": 100
+        "time_budget_start": 100,
+        "do_multi_phase_budgets": false,
+        "phases": [0.1, 0.2],
+        "phase_tol": 0.05
     },
     "turb": {
         "xLoc": 5,
@@ -39,6 +42,7 @@
         "run_file_name": "run.sh",
         "n_hrs": 24,
         "n_nodes" : 1,
-        "queue": "skx"
+        "queue": "skx",
+        "build_folder": "build_opti"
     }
 }
