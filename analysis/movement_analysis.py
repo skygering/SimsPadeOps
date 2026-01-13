@@ -12,8 +12,8 @@ import glob
 import seaborn as sns
 
 get_stats = False
-get_all_points = False
-get_centerlines = True
+get_all_points = True
+get_centerlines = False
 
 def get_stats(Cp_vals, an_vals, cT_vals):
     # get statistics on calcualted values
@@ -72,9 +72,13 @@ for (i, id_str) in enumerate(ids):
     run_folder = os.path.join(sim_16_all_folder, "Sim_" + id_str)
     sim = pio.BudgetIO(run_folder, padeops = True, runid = 0, normalize_origin="turbine")
     surge_not_pitch = float(surge_amplitude[i]) != 0
+    stationary = float(surge_amplitude[i]) == 0 and  float(pitch_amplitude[i]) == 0
     if surge_not_pitch:
         amp = float(surge_amplitude[i])
         movement = "Surge"
+    elif stationary:
+        amp = 0
+        movement = "Stationary"
     else:
         amp = float(pitch_amplitude[i])
         movement = "Pitch"
@@ -91,7 +95,7 @@ for (i, id_str) in enumerate(ids):
             log_file_dict = pio.query_logfile(os.path.join(run_folder, log_file[0]), search_terms=["tilt", "uturb", "Time", "TIDX", "delta"], crop_equal = False)
             tidx = np.insert(log_file_dict["TIDX"], 0, 0)
             tidx = tidx[time_mask]
-            if surge_not_pitch:
+            if surge_not_pitch or stationary:
                 tilt = np.zeros_like(uvel)
             else:
                 tilt = log_file_dict["tilt"][time_mask]

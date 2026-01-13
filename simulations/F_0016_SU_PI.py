@@ -44,8 +44,8 @@ single_inputs = dict(
         problem_name = "AD_coriolis_shear",
         job_name = "ct_effects",
         # if not provided, default_inputs will be used
-        n_hrs = 5,
-        queue = "spr"
+        n_hrs = 3,
+        queue = "skx"
     )
 )
 
@@ -71,13 +71,31 @@ small_pitching_cases = itertools.product(small_sf, [0.0], small_pa)
 small_movement_iter = itertools.chain.from_iterable([small_surging_cases, small_pitching_cases])
 varied_inputs_small = itertools.product(cT, small_movement_iter, dt, filterWidth)
 
+zero_movement = itertools.product([1.33, 2.0], [0], [0], [0], dt, filterWidth)
+
+cT = [2.33]
+surging_cases = itertools.product(sf, sa, [0.0])
+pitching_cases = itertools.product(sf, [0.0], pa)
+movement_iter = itertools.chain.from_iterable([surging_cases, pitching_cases])
+varied_inputs_more_CT = itertools.product(cT, movement_iter, dt, filterWidth)
+
 varied_header = ["cT", "surge_freq", "surge_amplitude", "pitch_amplitude", "dt", "filterWidth"]
-varied_inputs = itertools.chain.from_iterable([varied_inputs_normal, varied_inputs_small])
+varied_inputs = itertools.chain.from_iterable([varied_inputs_normal, varied_inputs_small, zero_movement, varied_inputs_more_CT])
 
 # for v in varied_inputs: 
 #     print(v)                                   
 
 # write needed simulation files
 ju.write_padeops_suite(single_inputs, varied_inputs, varied_header = varied_header, default_input = default_inputs,
-    sim_template = sim_template, run_template = run_template, turb_template = turb_template, node_cap = 12)
+    sim_template = sim_template, run_template = run_template, turb_template = turb_template, node_cap = 8)
 
+a = ju.DATA_PATH + curr_script_name + "_Files"
+
+ju.make_batched_sbatch_files(
+    ju.DATA_PATH + curr_script_name + "_Files",
+    max_per_batch=12,
+    output_glob="*.out",
+    timeout_hours=2,
+    sbatch_prefix="run_batch",
+    max_walltime_hours=12,
+)
