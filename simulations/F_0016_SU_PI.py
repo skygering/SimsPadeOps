@@ -74,8 +74,8 @@ varied_inputs_small = itertools.product(cT, small_movement_iter, dt, filterWidth
 varied_header = ["cT", "surge_freq", "surge_amplitude", "pitch_amplitude", "dt", "filterWidth"]
 varied_inputs = itertools.chain.from_iterable([varied_inputs_normal, varied_inputs_small])
 
-# for v in varied_inputs: 
-#     print(v)                                   
+for v in varied_inputs: 
+    print(v)                                   
 
 # write needed simulation files
 ju.write_padeops_suite(single_inputs, varied_inputs, varied_header = varied_header, default_input = default_inputs,
