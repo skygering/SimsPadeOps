@@ -89,13 +89,11 @@ varied_inputs = itertools.chain.from_iterable([varied_inputs_normal, varied_inpu
 ju.write_padeops_suite(single_inputs, varied_inputs, varied_header = varied_header, default_input = default_inputs,
     sim_template = sim_template, run_template = run_template, turb_template = turb_template, node_cap = 8)
 
-a = ju.DATA_PATH + curr_script_name + "_Files"
-
-ju.make_batched_sbatch_files(
-    ju.DATA_PATH + curr_script_name + "_Files",
-    max_per_batch=12,
-    output_glob="*.out",
-    timeout_hours=2,
-    sbatch_prefix="run_batch",
-    max_walltime_hours=12,
-)
+# ju.make_batched_sbatch_files(
+#     ju.DATA_PATH + curr_script_name + "_Files",
+#     max_per_batch=12,
+#     output_glob="*.out",
+#     timeout_hours=2,
+#     sbatch_prefix="run_batch",
+#     max_walltime_hours=12,
+# )

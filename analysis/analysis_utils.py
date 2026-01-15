@@ -7,6 +7,8 @@ import padeopsIO as pio
 import pyGCS as pg
 from scipy.signal import find_peaks
 import statistics
+import glob
+from pathlib import Path
 
 
 DATA_PATH = os.environ['SCRATCH'] + "/Data/"
@@ -140,6 +142,52 @@ def get_TI_fact(path, logfile, start_TIDX):
 def get_TI_inst(path, logfile, start_TIDX):
     log_file_dict = pio.query_logfile(os.path.join(path, logfile), search_terms=["TI_inst"], crop_equal = False)
     return np.average(log_file_dict["TI_inst"][start_TIDX:])
+
+def extract_sim_log_from_batches(sim_dir):
+    """
+    Extract per-simulation log from batch output files.
+
+    Returns path to extracted log file or None if not found.
+    """
+    sim_dir = Path(sim_dir)
+    sim_name = sim_dir.name
+    parent = sim_dir.parent
+
+    batch_logs = sorted(parent.glob("run_batch_*.o*"))
+    if not batch_logs:
+        return None
+
+    start_token = f"Running {sim_name}"
+    end_token = f"Finished {sim_name}"
+
+    for batch_log in batch_logs:
+        with batch_log.open("r", errors="ignore") as f:
+            lines = f.readlines()
+
+        inside = False
+        extracted = []
+
+        for line in lines:
+            if start_token in line:
+                inside = True
+                extracted.append(line)
+                continue
+            if inside:
+                extracted.append(line)
+                if end_token in line:
+                    break
+
+        if extracted:
+            out_file = sim_dir / f"{sim_name}_from_{batch_log.name}"
+            with out_file.open("w") as out:
+                out.write(f"# Extracted from batch log: {batch_log}\n")
+                out.write(f"# Simulation: {sim_name}\n\n")
+                out.writelines(extracted)
+
+            return out_file
+
+    return None
+
 
 # def get_instantaneous_data(sim_folder, runid, tidx = "all", field = "u", **kwargs):
 #     run_folder = get_run_folder(sim_folder, runid)

@@ -91,6 +91,10 @@ for (i, id_str) in enumerate(ids):
         uvel = sim.read_turb_uvel("all", turb = 1)[time_mask]
         assert len(power) > 0
         log_file = glob.glob(f'*_{id_str}.o*', root_dir = run_folder, recursive = False)
+        if not log_file: # if run in a batch, might need to extract log information
+            extracted = au.extract_sim_log_from_batches(run_folder)
+            if extracted:
+                log_file = [extracted.name]
         if len(log_file) > 0:
             log_file_dict = pio.query_logfile(os.path.join(run_folder, log_file[0]), search_terms=["tilt", "uturb", "Time", "TIDX", "delta"], crop_equal = False)
             tidx = np.insert(log_file_dict["TIDX"], 0, 0)
@@ -106,8 +110,8 @@ for (i, id_str) in enumerate(ids):
         else:
             tilt = np.zeros_like(uvel)
             uturb = np.zeros_like(uvel)
-            time = time_vals[time_mask]
-            tidx = tidx_vals[time_mask]
+            time = time_vals
+            tidx = tidx_vals
             dx = np.zeros_like(uvel)
 
         udisk = uvel + uturb
