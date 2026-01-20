@@ -20,6 +20,7 @@ unified-momentum-model = { git = "https://github.com/Howland-Lab/Unified-Momentu
 streamtube = {git = "https://github.com/kirbyh/streamtube.git"}
 jinja2 = "^3.1.6"
 mitwindfarm = {git = "git@github.com:Howland-Lab/MITWindfarm.git"}
+jupytext = "^1.19.0"
 
 
 [build-system]
