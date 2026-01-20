@@ -295,6 +295,7 @@ def make_batched_sbatch_files(
     max_per_batch=12,
     output_glob="*.out",
     sbatch_prefix="run_batch",
+    avg_hours=None,
 ):
     """
     Create grouped sbatch scripts with batch size dynamically computed
@@ -304,8 +305,10 @@ def make_batched_sbatch_files(
     ----------
     base_dir : str or Path
         Directory containing Sim_* subdirectories.
+    avg_hours: int or float
+        Average expected runtime per simulation.
     timeout_hours : int or float
-        Expected runtime per simulation.
+        Maximum expected runtime per simulation.
     max_walltime_hours : int
         Maximum walltime per batch.
     max_per_batch : int
@@ -315,9 +318,12 @@ def make_batched_sbatch_files(
     sbatch_prefix : str
         Prefix for generated sbatch files.
     """
-
     base_dir = Path(base_dir).resolve()
     sims = sorted(p for p in base_dir.glob("Sim_*") if p.is_dir())
+
+    if avg_hours is None:
+        avg_hours = timeout_hours
+        
 
     # Filter simulations without output
     sims_to_run = [
@@ -334,7 +340,7 @@ def make_batched_sbatch_files(
     # ---------------------------
     # Compute batch size dynamically
     # ---------------------------
-    dynamic_batch_size = min(max_per_batch, math.floor(max_walltime_hours / timeout_hours))
+    dynamic_batch_size = min(max_per_batch, math.floor(max_walltime_hours / avg_hours))
     if dynamic_batch_size < 1:
         raise ValueError("timeout_hours > max_walltime_hours — cannot fit even one sim!")
 
@@ -354,7 +360,7 @@ def make_batched_sbatch_files(
         sbatch_file = base_dir / f"{sbatch_prefix}_{batch_idx:02d}.sbatch"
         batch_name = f"{sbatch_prefix}_{batch_idx:02d}"
         batch_size = len(batch)
-        walltime_hours = min(timeout_hours * batch_size, max_walltime_hours)
+        walltime_hours = min(avg_hours * batch_size, max_walltime_hours)
         walltime_str = f"{int(walltime_hours)}:00:00"
 
         # -----------------------------
