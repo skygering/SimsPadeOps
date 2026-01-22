@@ -9,7 +9,7 @@ from scipy.signal import find_peaks
 import statistics
 import glob
 from pathlib import Path
-
+import quick_metadata_plots as mplts
 
 DATA_PATH = os.environ['SCRATCH'] + "/Data/"
 
@@ -187,6 +187,7 @@ def extract_sim_log_from_batches(sim_dir):
             return out_file
 
     return None
+
 
 
 # def get_instantaneous_data(sim_folder, runid, tidx = "all", field = "u", **kwargs):

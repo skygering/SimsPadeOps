@@ -71,7 +71,8 @@ row = 0
 for (i, id_str) in enumerate(ids):
     run_folder = os.path.join(sim_16_all_folder, "Sim_" + id_str)
     sim = pio.BudgetIO(run_folder, padeops = True, runid = 0, normalize_origin="turbine")
-    surge_not_pitch = float(surge_amplitude[i]) != 0
+    surge_not_pitch = float(surge_amplitude[i]) != 0 and float(pitch_amplitude[i]) == 0
+    pitch_not_surge = (float(surge_amplitude[i]) == 0) and (float(pitch_amplitude[i]) != 0)
     stationary = float(surge_amplitude[i]) == 0 and  float(pitch_amplitude[i]) == 0
     if surge_not_pitch:
         amp = float(surge_amplitude[i])
@@ -82,6 +83,7 @@ for (i, id_str) in enumerate(ids):
     else:
         amp = float(pitch_amplitude[i])
         movement = "Pitch"
+    
     try:
         tidx_vals, time_vals = sim.get_time_ax(return_tidx=True)
         time_mask = time_vals > 100

@@ -23,7 +23,9 @@
         "time_budget_start": 100,
         "do_multi_phase_budgets": false,
         "phases": [0.0],
-        "phase_tol": -1
+        "phase_tol": -1,
+        "inflow_amplit": 0.0,
+        "inflow_freq":0.0
     },
     "turb": {
         "xLoc": 5,
