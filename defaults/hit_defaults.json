@@ -15,7 +15,17 @@
         "useDynamicTurbine": true,
         "ADM_Type" : 5,
         "RunID" : 1,
-        "useWindTurbines" : true
+        "useWindTurbines" : true,
+        "do_time_budgets": false,
+        "time_budgetType": 0,
+        "tidx_compute_time_budget": 5,
+        "tidx_dump_time_budget": 1000,
+        "time_budget_start": 100,
+        "do_multi_phase_budgets": false,
+        "phases": [0.0],
+        "phase_tol": -1,
+        "inflow_amplit": 0.0,
+        "inflow_freq":0.0
     },
     "turb": {
         "xLoc": 5,
@@ -34,7 +44,8 @@
         "run_file_name": "run.sh",
         "n_hrs": 24,
         "n_nodes" : 1,
-        "queue": "skx"
+        "queue": "skx",
+        "build_folder": "build_opti"
     },
     "hit": {
         "hit_file_name" : "hit_inputs.dat",

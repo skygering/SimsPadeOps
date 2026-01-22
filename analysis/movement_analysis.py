@@ -12,8 +12,8 @@ import glob
 import seaborn as sns
 
 get_stats = False
-get_all_points = False
-get_centerlines = True
+get_all_points = True
+get_centerlines = False
 
 def get_stats(Cp_vals, an_vals, cT_vals):
     # get statistics on calcualted values
@@ -71,13 +71,19 @@ row = 0
 for (i, id_str) in enumerate(ids):
     run_folder = os.path.join(sim_16_all_folder, "Sim_" + id_str)
     sim = pio.BudgetIO(run_folder, padeops = True, runid = 0, normalize_origin="turbine")
-    surge_not_pitch = float(surge_amplitude[i]) != 0
+    surge_not_pitch = float(surge_amplitude[i]) != 0 and float(pitch_amplitude[i]) == 0
+    pitch_not_surge = (float(surge_amplitude[i]) == 0) and (float(pitch_amplitude[i]) != 0)
+    stationary = float(surge_amplitude[i]) == 0 and  float(pitch_amplitude[i]) == 0
     if surge_not_pitch:
         amp = float(surge_amplitude[i])
         movement = "Surge"
+    elif stationary:
+        amp = 0
+        movement = "Stationary"
     else:
         amp = float(pitch_amplitude[i])
         movement = "Pitch"
+    
     try:
         tidx_vals, time_vals = sim.get_time_ax(return_tidx=True)
         time_mask = time_vals > 100
@@ -87,11 +93,15 @@ for (i, id_str) in enumerate(ids):
         uvel = sim.read_turb_uvel("all", turb = 1)[time_mask]
         assert len(power) > 0
         log_file = glob.glob(f'*_{id_str}.o*', root_dir = run_folder, recursive = False)
+        if not log_file: # if run in a batch, might need to extract log information
+            extracted = au.extract_sim_log_from_batches(run_folder)
+            if extracted:
+                log_file = [extracted.name]
         if len(log_file) > 0:
             log_file_dict = pio.query_logfile(os.path.join(run_folder, log_file[0]), search_terms=["tilt", "uturb", "Time", "TIDX", "delta"], crop_equal = False)
             tidx = np.insert(log_file_dict["TIDX"], 0, 0)
             tidx = tidx[time_mask]
-            if surge_not_pitch:
+            if surge_not_pitch or stationary:
                 tilt = np.zeros_like(uvel)
             else:
                 tilt = log_file_dict["tilt"][time_mask]
@@ -102,8 +112,8 @@ for (i, id_str) in enumerate(ids):
         else:
             tilt = np.zeros_like(uvel)
             uturb = np.zeros_like(uvel)
-            time = time_vals[time_mask]
-            tidx = tidx_vals[time_mask]
+            time = time_vals
+            tidx = tidx_vals
             dx = np.zeros_like(uvel)
 
         udisk = uvel + uturb

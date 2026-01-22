@@ -147,6 +147,13 @@ restart_tid           = 35000                                                  !
 restart_counter       = 5544                                                   ! Restart budget file counter 
 /
 /
+&BUDGET_MULTI_PHASE_AVG
+do_budgets            = .{{ do_multi_phase_budgets|upper }}.
+phases                = {% for val in phases %}{{ val }}d0{% if not loop.last %}, {% endif %}{% endfor %}
+nphases               = {{ "%d"|format(phases | length) }}
+tol                   = {{ "%.6f" | format(phase_tol|float)}}d0           
+/
+/
 &AD_CoriolisINPUT
 Lx                            =  {{ "%0.8f"|format(Lx|float) }}d0      ! Domain Length (appropriate dimesnions/non-dimensionalized)
 Ly                            =  {{ "%0.8f"|format(Ly|float) }}d0       ! Domain Width  (appropriate dimesnions/non-dimensionalized)
@@ -156,4 +163,6 @@ vInflow                       = 0.d0           ! Veer strength dalpha/dz = vInfl
 InflowProfileAmplit           = 0.d0           ! Controls amplitude in Type 1, 2
 InflowProfileThick            = 0.d0           ! with uInflow (vInflow) controls strength of shear (veer) 
 InflowProfileType             = 0              ! Inflow profile; 0: uniform, 1: MFH shear, 2: MFH shear + veer, 5: new shear 6: new veer, 7: shear + veer
+amplit                        = {{ "%0.8f"|format(inflow_amplit|float) }}d0        ! Forcing amplitude target, as a fraction of G
+freq                          = {{ "%0.8f"|format(inflow_freq|float) }}d0          ! Forcing frequency (non-dimensionalized)
 /

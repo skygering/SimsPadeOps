@@ -11,7 +11,7 @@ python = ">=3.11,<4.0"
 ipykernel = "^6.29.5"
 numpy = "^2.3.1"
 matplotlib = "^3.10.3"
-padeopsio = {git = "https://github.com/Howland-Lab/padeopsIO.git"}
+padeopsio = {git = "https://github.com/Howland-Lab/padeopsIO.git", branch = "sg/add_phase_files"}
 pandas = "^2.3.0"
 seaborn = "^0.13.2"
 pygcs = "^1.1.1"
@@ -19,6 +19,9 @@ moviepy = "^2.2.1"
 unified-momentum-model = { git = "https://github.com/Howland-Lab/Unified-Momentum-Model.git"}
 streamtube = {git = "https://github.com/kirbyh/streamtube.git"}
 jinja2 = "^3.1.6"
+mitwindfarm = {git = "git@github.com:Howland-Lab/MITWindfarm.git"}
+jupytext = "^1.19.0"
+nbstripout = "^0.9.0"
 
 
 [build-system]

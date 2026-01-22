@@ -1,263 +1,431 @@
-import analysis_utils as au
-import matplotlib.pyplot as plt
-import os
-from pathlib import Path
-import quick_metadata_plots as mplts
-import padeopsIO as pio
-import math
-from scipy.stats import describe
-from numpy import std
-import numpy as np
+# ---
+# jupyter:
+#   jupytext:
+#     text_representation:
+#       extension: .py
+#       format_name: percent
+#       format_version: '1.3'
+#       jupytext_version: 1.19.0
+#   kernelspec:
+#     display_name: Python 3
+#     language: python
+#     name: python3
+# ---
+
+# %%
 import pandas as pd
-from matplotlib.lines import Line2D
-
-data_path = Path(au.DATA_PATH)
-# all simulation folders used
-sim_4_X_folder = os.path.join(au.DATA_PATH, "F_0004_X_Files")
-sim_4_SU_PI_folder = os.path.join(au.DATA_PATH, "F_0004_SU_PI_Files")
-sim_5_all_folder = os.path.join(au.DATA_PATH, "F_0005_X_SU_PI_Files")
-sim_6_all_folder = os.path.join(au.DATA_PATH, "F_0006_X_SU_PI_Files")
-sim_8_all_folder = os.path.join(au.DATA_PATH, "F_0008_X_SU_PI_Files")
-sim_9_all_folder = os.path.join(au.DATA_PATH, "F_0009_X_SU_PI_Files")
-sim_10_all_folder = os.path.join(au.DATA_PATH, "F_0010_X_SU_PI_Files")
-sim_10H_all_folder = os.path.join(au.DATA_PATH, "F_0010_SU_PI_H_Files")
-sim_11_all_folder = os.path.join(au.DATA_PATH, "F_0011_SU_PI_Files")
-sim_12_all_folder = os.path.join(au.DATA_PATH, "F_0012_SU_PI_Files")
-sim_12_cont_folder = os.path.join(au.DATA_PATH, "F_0012_SU_PI_Cont_Files")
-data_fn = os.path.join(sim_6_all_folder, 'collected_runs.csv')
-
-# # go through data and collect
-df = pd.DataFrame(columns=['marker', 'nx', 'ny', 'filter', 'filterFactor', 'useCorrection', 'CT_prime', "turbulence",
-                           'surge_freq', 'surge_amplitude', 'pitch_amplitude',
-                           'mean_CT','mean_an','mean_Cp',
-                           'variance_CT', 'variance_an', 'variance_Cp',
-                           'std_CT', 'std_an', 'std_Cp',
-                           'skewness_CT', 'skewness_an', 'skewness_Cp',
-                           'kurtosis_CT', 'kurtosis_an', 'kurtosis_Cp'])
-folders = (sim_4_X_folder, sim_4_SU_PI_folder, sim_5_all_folder, sim_6_all_folder, sim_8_all_folder, sim_9_all_folder, sim_10_all_folder, sim_10H_all_folder, sim_11_all_folder, sim_12_all_folder, sim_12_cont_folder)
-row = 0
-for (k, folder) in enumerate(folders):
-    rows, fields = mplts.get_sim_varied_params(folder)
-    if k == 0:
-        print("A")
-        ids, cT, tstop, nx, ny, nz, dt, filterWidth, useCorrection = zip(*rows)
-        surge_freq = [0] * len(ids)
-        surge_amplitude = surge_freq
-        pitch_amplitude = surge_amplitude
-    elif k == 1:
-        print("B")
-        ids, cT, nx, ny, nz, dt, filterWidth, useCorrection, surge_amplitude, pitch_amplitude = zip(*rows)
-        surge_freq = [1] * len(ids)
-    elif k == 2:
-        print("C")
-        ids, dt, cT, surge_freq, surge_amplitude, pitch_amplitude, nx, ny, nz, filterWidth = zip(*rows)
-        useCorrection = [False] * len(ids)
-    elif k == 3:
-        print("D")
-        ids, dt, cT, surge_freq, surge_amplitude, pitch_amplitude, nx, ny, nz, filterWidth = zip(*rows)
-        useCorrection = [False] * len(ids)
-    elif k == 4:
-        print("E")
-        ids, dt, nx, ny, nz, filterWidth, cT, surge_freq, surge_amplitude, pitch_amplitude = zip(*rows)
-        useCorrection = [True] * len(ids)
-    elif k == 5:
-        print("F")
-        ids, dt, cT, nx, ny, nz, filterWidth, useCorrection, hit_inputdir, TI_fact, surge_freq, surge_amplitude, pitch_amplitude = zip(*rows)
-    elif k == 6:
-        ids, dt, cT, surge_freq, surge_amplitude, pitch_amplitude, filterWidth, useCorrection = zip(*rows)
-        nx, ny, nz = [256] * len(ids), [128] * len(ids), [128] * len(ids)
-    elif k == 7:
-        ids, dt, surge_freq, surge_amplitude, pitch_amplitude, filterWidth = zip(*rows)
-        nx, ny, nz = [320] * len(ids), [128] * len(ids), [128] * len(ids)
-        useCorrection = [False] * len(ids)
-        cT = [1.0] * len(ids)
-    elif k == 8:
-        ids,cT,dt,surge_freq,surge_amplitude,pitch_amplitude,filterWidth = zip(*rows)
-        nx, ny, nz = [256] * len(ids), [128] * len(ids), [128] * len(ids)
-        useCorrection = [True] * len(ids)
-    elif k == 9 or k == 10:
-        ids,cT,surge_freq,surge_amplitude,pitch_amplitude,dt,filterWidth = zip(*rows)
-        nx, ny, nz = [256] * len(ids), [128] * len(ids), [128] * len(ids)
-        useCorrection = [True] * len(ids)
-
-    # get data from runs
-    for (i, id_str) in enumerate(ids):
-        run_folder = os.path.join(folder, "Sim_" + id_str)
-        sim = pio.BudgetIO(run_folder, padeops = True, runid = 0)
-        dt_i = dt[i]
-        trans_tau = int(math.ceil(50 / float(dt_i)) + 1)
-        try:
-            # get all of the needed values
-            power = sim.read_turb_power("all", turb=1)[trans_tau:]
-            uvel = sim.read_turb_uvel("all", turb = 1)[trans_tau:]
-        except: 
-            continue
-        else:
-            print("HERE")
-            h = ((25 / float(nx[i]))**2 + 2 * (10 / float(ny[i]))**2)**(1/2)
-            filter_width = float(filterWidth[i])
-            # if useCorrection[i] and filter_width > 0.1:
-            #     continue
-            Cp_vals = [au.power_to_Cp(p) for p in power]
-            an_vals = [au.vel_to_a(u) for u in uvel]
-            cT_prime_val = float(cT[i])
-            cT_vals = [cT_prime_val * (1 - an)**2 for an in an_vals]
-            # save sim info
-            if float(surge_freq[i]) == 0:
-                marker = "o"
-            elif float(surge_amplitude[i]) != 0:
-                marker = "s"
-            else:
-                marker = "^"
-            filter_factor = round(filter_width / h, 3)
-
-            turbulence = True if (k == 5 or k == 7) else False
-
-            Cp_stats = describe(Cp_vals)
-            an_stats = describe(an_vals)
-            cT_stats = describe(cT_vals)
-            mean_info = [cT_stats.mean, an_stats.mean, Cp_stats.mean]
-            variance_info = [cT_stats.variance, an_stats.variance, Cp_stats.variance]
-            std_info = [std(cT_vals), std(an_vals), std(Cp_vals)]
-            skewness_info = [cT_stats.skewness, an_stats.skewness, Cp_stats.skewness]
-            kurtosis_info = [cT_stats.kurtosis, an_stats.kurtosis, Cp_stats.kurtosis]
-            # ['marker', 'nx', 'ny', 'filter', 'filterFactor', 'useCorrection', 'CT_prime', "turbulence",'mean_CT','mean_an','mean_Cp','variance_CT', 'variance_an', 'variance_Cp', 'std_CT', 'std_an', 'std_Cp','skewness_CT', 'skewness_an', 'skewness_Cp','kurtosis_CT', 'kurtosis_an', 'kurtosis_Cp']
-            df.loc[row] = [marker, float(nx[i]), float(ny[i]), filter_width, filter_factor, useCorrection[i], cT_prime_val, turbulence, surge_freq[i], surge_amplitude[i], pitch_amplitude[i]] + mean_info + variance_info + std_info + skewness_info + kurtosis_info
-            row += 1
-# saving the dataframe
-df.to_csv(data_fn)
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+import re
+import math
 
 
-# def four_plot(df, title, an_key, CT_key, Cp_key, save_fn, add_classical = False, extra_plots = False, ax_label_type = ''):
-#     if not extra_plots:
-#         fig, ((ax0, ax1), (ax2, ax3)) = plt.subplots(2, 2, figsize=(14, 8))
-#         SMALL_SIZE = 10
-#         MEDIUM_SIZE = 14
-#         BIGGER_SIZE = 18
-#     else: 
-#         fig, axes = plt.subplots(3, 2, figsize=(20, 20))
-#         ((ax0, ax1), (ax2, ax3), (ax4, ax5)) = axes
-#         ax4.set(xlabel='$a_n$ Mean', ylabel = "$C_p$ " + ax_label_type)
-#         ax5.set(xlabel='$C_p$ Mean', ylabel = "$a_n$ " + ax_label_type)
-#         SMALL_SIZE = 20
-#         MEDIUM_SIZE = 20
-#         BIGGER_SIZE = 24
-#         for ax_row in axes:
-#             for ax in ax_row:
-#                 ax.tick_params(axis='both', which='major', labelsize=16)
-#                 ax.xaxis.label.set_size(16)
-#                 ax.yaxis.label.set_size(16)
+# %% [markdown]
+# # Load Dataset and Minimal Cleaning
+
+# %%
+def natural_sort(l): 
+    convert = lambda text: int(text) if text.isdigit() else text.lower()
+    alphanum_key = lambda key: [convert(c) for c in re.split('([0-9]+)', key)]
+    return sorted(l, key=alphanum_key)
 
 
-#     plt.rc('font', size=SMALL_SIZE)
-#     plt.rc('axes', titlesize=SMALL_SIZE)     # fontsize of the axes title
-#     plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
-#     plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
-#     plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
-#     plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
-#     plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
+# %%
+old_df = pd.read_csv("/Users/sky/src/HowlandLab/data/target_grid_search.csv")
+df = old_df.copy(deep = True)
+df = df.dropna()
+df
 
-#     fig.suptitle(title)
-#     ax0.set(ylabel='$C_T$ ' + ax_label_type)
-#     ax2.set(ylabel='$C_p$ ' + ax_label_type, xlabel='$a_n $' + ax_label_type)
-#     ax3.set(xlabel='$C_T\'$ ' + ax_label_type)
-
-#     unique_factors = df['filterFactor'].unique()
-#     unique_factors.sort()
-#     unique_nx = df['nx'].unique()
-#     unique_nx.sort()
-
-#     cmap = plt.get_cmap('jet')
-#     num_colors = len(unique_factors)
-#     colors = [cmap(value) for value in np.linspace(0, 1, num_colors)]
-#     colors.reverse()
-
-#     sizes = [50, 100, 200, 400]
-
-#     for index, row in df.iterrows():
-#         i = np.where(unique_nx == row["nx"])[0][0]
-#         marker_size = sizes[i]
-#         j = np.where(unique_factors == row["filterFactor"])[0][0]
-#         marker_color = colors[j]
-#         if row["useCorrection"]:
-#             edgecolor = 'r'
-#             edgewidth = 2
-#             alpha = 0.5
-#         else:
-#             edgecolor = 'face'
-#             edgewidth = 0
-#             alpha = 0.5
-#         # Columns in row: ['marker', 'nx', 'ny', 'filter', 'filterFactor','CT_prime','mean_CT','mean_an','mean_Cp']
-#         # plot CT vs an - size based off of resolution, color based off of filter, marker based off of turbine movement
-#         ax0.scatter(row[an_key], row[CT_key], marker = row["marker"], s = marker_size, color = marker_color, edgecolors = edgecolor, linewidth = edgewidth, alpha=alpha)
-#         # plot CT vs CT' - size based off of resolution, color based off of filter, marker based off of turbine movement
-#         ax1.scatter(row["CT_prime"], row[CT_key], marker = row["marker"], s = marker_size, color = marker_color, edgecolors = edgecolor, linewidth = edgewidth, alpha=alpha)
-#         # plot Cp vs an - size based off of resolution, color based off of filter, marker based off of turbine movement
-#         ax2.scatter(row[an_key], row[Cp_key], marker = row["marker"], s = marker_size, color = marker_color, edgecolors = edgecolor, linewidth = edgewidth, alpha=alpha)
-#         # plot Cp vs CT' - size based off of resolution, color based off of filter, marker based off of turbine movement
-#         ax3.scatter(row["CT_prime"], row[Cp_key], marker = row["marker"], s = marker_size, color = marker_color, edgecolors = edgecolor, linewidth = edgewidth, alpha=alpha)
-
-#         if add_classical:
-#             # classical momentum values for statinary turbine
-#             ctp_vals = np.linspace(0, 12, 50)
-#             classical_an = [au.analytical_a(ctp) for ctp in ctp_vals]
-#             classical_cp = [au.a_to_Cp(a) for a in classical_an]
-#             classical_ct = [ctp * (1 - classical_an[i])**2 for (i, ctp) in enumerate(ctp_vals)]
-#             ax0.plot(classical_an, classical_ct, c = 'k')
-#             ax1.plot(ctp_vals, classical_ct, c = 'k')
-#             ax2.plot(classical_an, classical_cp, c = 'k')
-#             ax3.plot(ctp_vals, classical_cp, c = 'k')
-
-#         if extra_plots:
-#             ax4.scatter(row["mean_an"], row[Cp_key], marker = row["marker"], s = marker_size, color = marker_color, edgecolors = edgecolor, alpha=0.5)
-#             ax5.scatter(row["mean_Cp"], row[an_key],  marker = row["marker"], s = marker_size, color = marker_color, edgecolors = edgecolor, alpha=0.5)
-
-#         # shape legend
-#         shape_elements = [Line2D([0], [0], marker='.', color='w', label='Stationary', markerfacecolor='tab:gray', markersize=12),
-#                           Line2D([0], [0], marker='s', color='w', label='Surging', markerfacecolor='tab:gray', markersize=8),
-#                           Line2D([0], [0], marker='^', color='w', label='Pitching', markerfacecolor='tab:gray', markersize=8)]
-#         ax0.legend(handles=shape_elements, bbox_to_anchor=(0, 1.02, 1, 0.2), loc="upper left", title = "Turbine Movement", ncols = 3)
-#         # color legend
-#         color_elements = [Line2D([0], [0], marker='o', color='w', label=f'{unique_factors[i]}', markerfacecolor=c, markersize=8) for (i, c) in enumerate(colors)]
-#         ax1.legend(handles=color_elements, bbox_to_anchor=(1.04, 1), loc="upper left", title = "Filter Factors")
-#         # size legend
-#         size_elements = [Line2D([0], [0], marker='o', color='w', label=f'{unique_nx[i]}', markerfacecolor='tab:gray', markersize=(s)**(1/2)) for (i, s) in enumerate(sizes)]
-#         ax3.legend(handles=size_elements, bbox_to_anchor=(1.04, 1), loc="upper left", title = "Nx")
-        
+# %%
+old_df = pd.read_csv("/Users/sky/src/HowlandLab/data/target_grid_search.csv")
+df = old_df.copy(deep = True)
+df = df.dropna()
+# add in new columns of ease of use
+df['Movement'] = df.apply(lambda row: ("Stationary" if row.marker == "o" else ("Surging" if row.marker == "s" else "Pitching")), axis = 1)
+df["Resolution (ny)"] = df["ny"].astype(str)
+df["h"] = df.apply(lambda row: round(math.sqrt((25/row.nx)**2 + 2 * (10/row.ny)**2), ndigits = 2), axis = 1)
+df["f"] = df.apply(lambda row: math.trunc(row.filterFactor*10) / 10, axis = 1)
+# remove unneeded columns/values
+cols_to_keep = ["Movement", "Resolution (ny)", "filterFactor", "f", "useCorrection", "turbulence", "CT_prime"]
+df = df.drop_duplicates(subset = cols_to_keep, keep = 'last')
 
 
-#     # Create the figure
-#     plt.tight_layout()
-#     # plt.legend(bbox_to_anchor=(1.04, 1), loc="upper left", handles=legend_elements)
-#     plt.savefig(os.path.join(sim_6_all_folder, save_fn))
-#     plt.close()
-
-# df = pd.read_csv(data_fn)
-# # only includes ONE final run with correction on to see the changes
-# df = df[(df['useCorrection'] == False) | ((df['useCorrection'] == True) & (df['filterFactor'] == 1.5) & (df['nx'] == 256))]
-# df = df[df['filterFactor'] != 0.3]
-# stationary_df = df[df['marker'] == "o"]
-# surging_df = df[df['marker'] == "s"]
-# pitching_df = df[df['marker'] == "^"]
+# %%
+def get_movement(df, type_str):
+    return df[df["Movement"] == type_str]
+def get_stationary(df):
+    return get_movement(df, "Stationary")
+def get_surging(df):
+    return get_movement(df, "Surging")
+def get_pitching(df):
+    return get_movement(df, "Pitching")
 
 
+# %%
+def get_mean(df):
+    return df[cols_to_keep + ["mean_CT", "mean_an", "mean_Cp"]]
+def get_std(df):
+    return df[cols_to_keep + ["std_CT", "std_an", "std_Cp"]]
+def get_skew(df):
+    return df[cols_to_keep + ["skewness_CT", "skewness_an", "skewness_Cp"]]
+def get_kurtosis(df):
+    return df[cols_to_keep + ["kurtosis_CT", "kurtosis_an", "kurtosis_Cp"]]
 
-# four_plot(df, "Means for Simulations ", "mean_an", "mean_CT", "mean_Cp", 'mean_target_grid_search.png', add_classical = True, ax_label_type = "Mean")
-# four_plot(df, "Skewness for Simulations", "skewness_an", "skewness_CT", "skewness_Cp", 'skewness_target_grid_search.png', extra_plots = True, ax_label_type = "Skew")
-# four_plot(df, "Standard Deviation for Simulations", "std_an", "std_CT", "std_Cp", 'std_target_grid_search.png', extra_plots = True, ax_label_type = "STD")
-# four_plot(df, "Kurtosis for Simulations", "kurtosis_an", "kurtosis_CT", "kurtosis_Cp", 'kurtosis_target_grid_search.png', extra_plots = True, ax_label_type = "Kurtosis")
 
-# four_plot(stationary_df, "Stationary Turbine - Means for Simulations", "mean_an", "mean_CT", "mean_Cp", 'stationary_mean_target_grid_search.png', add_classical = True, ax_label_type = "Mean")
-# # four_plot(stationary_df, "Stationary Turbine - Skewness for Simulations", "skewness_an", "skewness_CT", "skewness_Cp", 'stationary_skewness_target_grid_search.png', extra_plots = True, ax_label_type = "Skew")
-# four_plot(stationary_df, "Stationary Turbine - Standard Deviation for Simulations", "std_an", "std_CT", "std_Cp", 'stationary_std_target_grid_search.png', extra_plots = True, ax_label_type = "STD")
-# # four_plot(stationary_df, "Stationary Turbine - Kurtosis for Simulations", "kurtosis_an", "kurtosis_CT", "kurtosis_Cp", 'stationary_kurtosis_target_grid_search.png', extra_plots = True, ax_label_type = "Kurtosis")
+# %%
+mean_df = get_mean(df)
+std_df = get_std(df)
+skew_df = get_skew(df)
+kurtosis_df = get_kurtosis(df)
 
-# four_plot(surging_df, "Surging Turbine - Means for Simulations", "mean_an", "mean_CT", "mean_Cp", 'surging_mean_target_grid_search.png', add_classical = True, ax_label_type = "Mean")
-# four_plot(surging_df, "Surging Turbine - Skewness for Simulations", "skewness_an", "skewness_CT", "skewness_Cp", 'surging_skewness_target_grid_search.png', extra_plots = True, ax_label_type = "Skew")
-# four_plot(surging_df, "Surging Turbine - Standard Deviation for Simulations", "std_an", "std_CT", "std_Cp", 'surging_std_target_grid_search.png', extra_plots = True, ax_label_type = "STD")
-# four_plot(surging_df, "Surging Turbine - Kurtosis for Simulations", "kurtosis_an", "kurtosis_CT", "kurtosis_Cp", 'surging_kurtosis_target_grid_search.png', extra_plots = True, ax_label_type = "Kurtosis")
 
-# four_plot(pitching_df, "Pitching Turbine - Means for Simulations", "mean_an", "mean_CT", "mean_Cp", 'pitching_mean_target_grid_search.png', add_classical = True, ax_label_type = "Mean")
-# four_plot(pitching_df, "Pitching Turbine - Skewness for Simulations", "skewness_an", "skewness_CT", "skewness_Cp", 'pitching_skewness_target_grid_search.png', extra_plots = True, ax_label_type = "Skew")
-# four_plot(pitching_df, "Pitching Turbine - Standard Deviation for Simulations", "std_an", "std_CT", "std_Cp", 'pitching_std_target_grid_search.png', extra_plots = True, ax_label_type = "STD")
-# four_plot(pitching_df, "Pitching Turbine - Kurtosis for Simulations", "kurtosis_an", "kurtosis_CT", "kurtosis_Cp", 'pitching_kurtosis_target_grid_search.png', extra_plots = True, ax_label_type = "Kurtosis")
+# %% [markdown]
+# # Plot Dataset Basics
+
+# %%
+def analytical_a(CT):
+    # note that CT is actually CT'
+    return CT / (4 + CT)
+
+def a_to_Cp(a, alg = "classical"):
+    return 4 * a * (1 - a)**2
+
+
+# %%
+def add_reference_lines(axes, ctp_vals, analytical_an, analytical_ct, analytical_cp, label, color):
+    ((ax0, ax1), (ax2, ax3)) = axes
+    sns.lineplot(ax = ax0, x = analytical_an, y = analytical_ct, color = color, label = label)
+    sns.lineplot(ax = ax1, x = ctp_vals, y = analytical_ct, color = color)
+    sns.lineplot(ax = ax2, x = analytical_an, y = analytical_cp, color = color)
+    sns.lineplot(ax = ax3, x = ctp_vals, y = analytical_cp, color = color)
+    return
+
+
+# %%
+def four_plot_layout(df, CT_key, an_key, Cp_key, classical = False, pitch = False, surge = False, title = "", ax_label_type = "", fill_between = False, **kwargs):
+    fig, axes = plt.subplots(2, 2, figsize=(10, 6))
+    ((ax0, ax1), (ax2, ax3)) = axes
+
+    sns.scatterplot(ax = ax0, data = df, x = an_key, y = CT_key, legend = True, **kwargs)
+    sns.scatterplot(ax = ax1, data = df, x = "CT_prime", y = CT_key, legend = False, **kwargs)
+    sns.scatterplot(ax = ax2, data = df, x = an_key, y = Cp_key, legend = False, **kwargs)
+    sns.scatterplot(ax = ax3, data = df, x = "CT_prime", y = Cp_key, legend = False, **kwargs)
+
+    ctp_vals = np.linspace(0.75, 6.25, 50)
+    analytical_an = [analytical_a(ctp) for ctp in ctp_vals]
+    analytical_ct = [ctp * (1 - analytical_an[i])**2 for (i, ctp) in enumerate(ctp_vals)]
+    analytical_cp = [a_to_Cp(a) for a in analytical_an]
+    if classical:
+        # classical momentum values for statinary turbine
+        label = "Classical"
+        color = "k"
+        add_reference_lines(axes, ctp_vals, analytical_an, analytical_ct, analytical_cp, label, color)
+    if surge:
+            s = 0.5
+            surge_cp = [cp * (1 + (3 * s **2) / 2) for cp in analytical_cp]
+            label = "Johlas (Surge)"
+            color = "b"
+            add_reference_lines(axes, ctp_vals, analytical_an, analytical_ct, surge_cp, label, color)
+    if pitch:
+            ps = [np.cos(5 * np.pi / 180 * np.sin(x))**3 for x in np.linspace(0, 2 * np.pi, 250)]
+            pitch_cp = [cp * np.mean(ps) for cp in analytical_cp]
+            label = "Johlas (Pitch)"
+            color = "g"
+            add_reference_lines(axes, ctp_vals, analytical_an, analytical_ct, pitch_cp, label, color)
+
+    if fill_between:
+        mean_of_ct_vals = df.groupby('CT_prime')[CT_key].mean()
+        std_of_ct_vals = df.groupby('CT_prime')[CT_key].std()
+        ax1.fill_between(mean_of_ct_vals.index, mean_of_ct_vals + std_of_ct_vals, mean_of_ct_vals - std_of_ct_vals, color='grey', alpha=0.2)
+        mean_of_cp_vals = df.groupby('CT_prime')[Cp_key].mean()
+        std_of_cp_vals = df.groupby('CT_prime')[Cp_key].std()
+        ax3.fill_between(mean_of_cp_vals.index, mean_of_cp_vals + std_of_cp_vals, mean_of_cp_vals - std_of_cp_vals, color='grey', alpha=0.2)
+
+
+    fig.suptitle(title)
+    ax0.set(xlabel = "", ylabel=ax_label_type + ' $C_T$')
+    ax1.set(xlabel = "", ylabel = "")
+    ax2.set(ylabel= ax_label_type + ' $C_p$', xlabel= ax_label_type + ' $a_n$')
+    ax3.set(xlabel= '$C_T\'$', ylabel = "")
+
+    leg = ax0.legend()
+    bb = leg.get_bbox_to_anchor().transformed(ax0.transAxes.inverted())
+    xOffset = 1.7
+    bb.x0 += xOffset
+    bb.x1 += xOffset
+    leg = leg.set_bbox_to_anchor(bb, transform = ax0.transAxes)
+    return fig, axes
+
+# %% [markdown]
+# # Plot All Data
+
+# %%
+fig, ax = four_plot_layout(df, "mean_CT", "mean_an", "mean_Cp", color ="grey", title = "Simulations Means", ax_label_type = "Mean", classical = True);
+
+# %% [markdown]
+# # Plot Data by Movement
+
+# %%
+palette = "viridis_r"
+alpha = 0.7
+
+# %%
+fig, axes = four_plot_layout(df, "mean_CT", "mean_an", "mean_Cp", color ="grey", title = "Simulations Means by Movement Type", ax_label_type = "Mean", hue = "Movement", style = "Movement", palette = palette, alpha = alpha, fill_between= True, classical = True);
+
+# %% [markdown]
+# ## Plot Data by Resolution
+
+# %%
+four_plot_layout(get_stationary(df), "mean_CT", "mean_an", "mean_Cp", title =  "Stationary Simulations Means by Resolution $h$\nwhere $h = \sqrt{\Delta x^2 + \Delta y^2 + \Delta z^2}$", ax_label_type = "Mean", hue = "h", style = "turbulence", palette = palette, alpha = alpha, fill_between=True, classical = True );
+
+# %%
+four_plot_layout(get_surging(df), "mean_CT", "mean_an", "mean_Cp", title =  "Surging Simulations Means by Resolution $h$\nwhere $h = \sqrt{\Delta x^2 + \Delta y^2 + \Delta z^2}$", ax_label_type = "Mean", hue = "h", style = "turbulence", palette = palette, alpha = alpha, fill_between=True, surge = True);
+
+# %%
+four_plot_layout(get_pitching(df), "mean_CT", "mean_an", "mean_Cp", title =  "Pitching Simulations Means by Resolution $h$\nwhere $h = \sqrt{\Delta x^2 + \Delta y^2 + \Delta z^2}$", ax_label_type = "Mean", hue = "h", style = "turbulence", palette = palette, alpha = alpha, fill_between=True, pitch = True);
+
+# %% [markdown]
+# At this point, I feel it is safe to drop the two coarsest resolutions, as they fall outside of the standard deviation of the means of $C_p$ and $C_T$. Thus we only keep resolutions that are $h < 0.25$.
+
+# %%
+high_res_df = df[df["h"] < 0.25]
+four_plot_layout(high_res_df, "mean_CT", "mean_an", "mean_Cp", title = "Simulations Means by Resolution (ny)", ax_label_type = "Mean", hue = "Resolution (ny)", style = "Movement", alpha = alpha, palette = palette, classical = True, surge=True, pitch=True);
+
+# %%
+high_res_df
+
+# %% [markdown]
+# # Plot Data by Filter Factor
+
+# %%
+analytical_an = [analytical_a(ctp) for ctp in [1.0, 4.0]]
+analytical_cp = [a_to_Cp(a) for a in analytical_an]
+
+def johlas(cp, sf, sa, pa):
+    v = (2 * sf * sa) / (1 - np.cos(sf * np.pi))
+    x_disp = (1 + (3 * (v**2)) / 2)
+    theta_disp = np.mean([np.cos(pa * np.pi / 180 * np.sin(x))**3 for x in np.linspace(0, 2 * np.pi, 250)])
+    return cp * x_disp * theta_disp
+surge_cp = [johlas(cp, 1.0, 0.5, 0.0) for cp in analytical_cp]
+pitch_cp = [johlas(cp, 1.0, 0.0, 5.0) for cp in analytical_cp]
+
+
+# %%
+high_res_df
+
+# %%
+df_les_vars = high_res_df
+df_les_vars = df_les_vars[df_les_vars["Movement"] != "Stationary"]
+df_les_vars = df_les_vars[(df_les_vars["CT_prime"] < 6) & (df_les_vars["h"] > 0.08)] # want CT' < 4 and 256 x 128 x 128 resolution data
+df_les_vars = df_les_vars[(df_les_vars["filterFactor"] < 4) & (df_les_vars["filterFactor"] > 0.6)]
+df_les_vars = df_les_vars[(df_les_vars["turbulence"] != True) | (df["useCorrection"] != True)]
+i = df_les_vars[((df_les_vars.turbulence) & ( df_les_vars.useCorrection))].index
+df_les_vars.drop(i)
+
+style = df_les_vars[['useCorrection', 'turbulence']].apply(
+    lambda row: f"{row.useCorrection}, {row.turbulence}", axis=1)
+style.name = 'Correction, Turbulence'
+hue = df_les_vars["CT_prime"]
+hue.name = "$C_T^'$"
+
+palette =['tab:blue', 'tab:orange']
+style_order = ["False, False", "True, False", "False, True"]
+
+g = sns.FacetGrid(df_les_vars, col = "Movement")
+surge_ax, pitch_ax = g.axes.flat
+surge_ax.axhline(y = surge_cp[0], color = palette[0], label = "Johlas")
+surge_ax.axhline(y = surge_cp[1], color = palette[1])
+pitch_ax.axhline(y = pitch_cp[0], color = palette[0])
+pitch_ax.axhline(y = pitch_cp[1], color = palette[1])
+
+surge_ax.axhline(y = analytical_cp[0], color = palette[0], linestyle=':', label = "Classical")
+surge_ax.axhline(y = analytical_cp[1], color = palette[1], linestyle=':')
+pitch_ax.axhline(y = analytical_cp[0], color = palette[0], linestyle=':', label = "Classical")
+pitch_ax.axhline(y = analytical_cp[1], color = palette[1], linestyle=':')
+g.map_dataframe(sns.scatterplot, x = "filterFactor", y = "mean_Cp", hue = hue, style = style, style_order = style_order, palette = palette)
+g.set_ylabels("Mean $C_p$")
+
+g.add_legend(title = "LES Parameters")
+
+# %%
+pitch_data = df_les_vars[df_les_vars["Movement"] == "Pitching"]
+pitch_data["percent_diff_classical"] = pitch_data.apply((lambda row: 100 * (row.mean_Cp - (analytical_cp[0] if row.CT_prime == 1 else analytical_cp[1])) / (analytical_cp[0] if row.CT_prime == 1 else analytical_cp[1])), axis = 1)
+
+fig, ax = plt.subplots(1, 1)
+fig.suptitle("Pitching $C_p$ % Difference from Classical Momentum Theory: $C_T^\' = 1.0$")
+ax.set_xlabel('Filter Factor')
+ax.set_ylabel('% Difference in $C_P$')
+sns.scatterplot(data = pitch_data, x = "filterFactor", y = "percent_diff_classical", hue = hue, style = style, style_order = style_order, palette = palette)
+
+filters = np.linspace(0.9, 2.6, num = 100)
+sns.lineplot(x = filters, y = 100 * (pitch_cp[0] - analytical_cp[0]) / analytical_cp[0], color = palette[0], label = "Johlas")
+sns.lineplot(x = filters, y = 100 * (pitch_cp[1] - analytical_cp[1]) / analytical_cp[1], color = palette[1])
+
+sns.lineplot(x = filters, y = 0, color = palette[0], label = "Classical", linestyle=':')
+sns.lineplot(x = filters, y = 0, color = palette[1], linestyle=':')
+
+leg = ax.legend()
+bb = leg.get_bbox_to_anchor().transformed(ax.transAxes.inverted())
+xOffset = 0.45
+bb.x0 += xOffset
+bb.x1 += xOffset
+leg = leg.set_bbox_to_anchor(bb, transform = ax.transAxes)
+
+# %%
+pitch_data = pitch_data.sort_values(by=['CT_prime', 'filterFactor'])
+pitch_data[(pitch_data["useCorrection"] == True) & (pitch_data["turbulence"] == False)][["nx", "ny", "filter", "filterFactor", "useCorrection", "CT_prime", "mean_Cp"]]
+
+# %%
+surge_data = df_les_vars[df_les_vars["Movement"] == "Surging"]
+surge_data["percent_diff_classical"] = surge_data.apply((lambda row: 100 * (row.mean_Cp - (analytical_cp[0] if row.CT_prime == 1 else analytical_cp[1])) / (analytical_cp[0] if row.CT_prime == 1 else analytical_cp[1])), axis = 1)
+surge_data = surge_data.sort_values(by=['CT_prime', 'filterFactor'])
+
+# %%
+surge_data[(surge_data["useCorrection"] == True) & (surge_data["turbulence"] == False)][["nx", "ny", "filter", "filterFactor", "useCorrection", "CT_prime", "mean_Cp"]]
+
+# %%
+aspect = 1.5
+g = sns.FacetGrid(df_les_vars, row = "Movement", sharey = False, aspect = aspect)
+g.map_dataframe(sns.scatterplot, x = "filterFactor", y = "std_Cp", hue = "CT_prime", style = style, style_order = style_order, palette = palette)
+g.set_ylabels("Standard Deviation $C_p$")
+g.add_legend(title = "LES Parameters")
+
+# %%
+g = sns.FacetGrid(df_les_vars, row = "Movement", sharey = False, aspect = aspect)
+g.map_dataframe(sns.scatterplot, x = "filterFactor", y = "skewness_Cp", hue = "CT_prime", style = style, style_order = style_order, palette = palette)
+g.set_ylabels("Skew $C_p$")
+g.add_legend(title = "LES Parameters")
+
+# %%
+g = sns.FacetGrid(df_les_vars, row = "Movement", sharey = False, aspect = aspect)
+g.map_dataframe(sns.scatterplot, x = "filterFactor", y = "kurtosis_Cp", hue = "CT_prime", style = style, style_order = style_order, palette = palette)
+g.set_ylabels("Kurtosis $C_p$")
+g.add_legend(title = "LES Parameters")
+
+# %%
+high_res_df
+
+# %%
+four_plot_layout(get_pitching(high_res_df), "mean_CT", "mean_an", "mean_Cp", title =  "Pitching Simulations Means by Filter Factor", ax_label_type = "Mean", hue = "f", style = "useCorrection", palette = palette, alpha = alpha, pitch = True);
+
+# %%
+four_plot_layout(get_pitching(high_res_df), "std_CT", "std_an", "std_Cp", title =  "Pitching Simulations Standard Deviation by Filter Factor", ax_label_type = "STD", hue = "f", style = "useCorrection", palette = palette, alpha = alpha);
+
+# %%
+four_plot_layout(get_pitching(high_res_df), "std_CT", "std_an", "std_Cp", title =  "Pitching Simulations Standard Deviation by Turbulence", ax_label_type = "STD", hue = "turbulence", style = "useCorrection", palette = palette, alpha = alpha);
+
+# %%
+four_plot_layout(get_stationary(high_res_df), "mean_CT", "mean_an", "mean_Cp", title =  "Stationary Simulations Means by Filter Factor", ax_label_type = "Mean", hue = "f", style = "useCorrection", palette = palette, alpha = alpha, classical = True);
+
+# %%
+four_plot_layout(get_surging(high_res_df), "mean_CT", "mean_an", "mean_Cp", title =  "Surging Simulations Means by Filter Factor", ax_label_type = "Mean", hue = "f", style = "useCorrection", palette = palette, alpha = alpha, surge = True);
+
+# %%
+four_plot_layout(get_surging(high_res_df), "std_CT", "std_an", "std_Cp", title =  "Surging Simulations Standard Deviation by Filter Factor", ax_label_type = "STD", hue = "f", style = "useCorrection", palette = palette, alpha = alpha);
+
+# %%
+four_plot_layout(df, "mean_CT", "mean_an", "mean_Cp",  title = "Simulations Means by use of Turbulence", ax_label_type = "Mean", hue = "turbulence", palette = palette, alpha = alpha);
+
+# %%
+four_plot_layout(df, "std_CT", "std_an", "std_Cp",  title = "Simulations Standard Deviations by use of Turbulence", ax_label_type = "STD", hue = "turbulence", palette = palette, alpha = alpha);
+
+# %%
+g = sns.FacetGrid(df, col = "Movement")
+g.map_dataframe(sns.scatterplot, x = "CT_prime", y = "mean_Cp", hue = "filterFactor", palette = palette, alpha = alpha)
+g.add_legend(title = "filterFactor")
+
+# %% [markdown]
+# This is pretty hard to interpret, so I want to try another formulation.
+
+# %% [markdown]
+# ## Mean ($C_T' = 4.0$)
+
+# %%
+import seaborn as sns
+cm = sns.color_palette("vlag", as_cmap=True)
+all_indices = ["Movement", "Resolution (ny)", "filterFactor", "CT_prime", "useCorrection", "turbulence"]
+movement_indices = ["Resolution (ny)", "filterFactor", "CT_prime", "useCorrection", "turbulence"]
+
+# %%
+df = df[(df["nx"] > 128) & (df["CT_prime"] < 6)]
+df = df[(df["CT_prime"] == 4)]
+df_ff1_cf = df[(df['filterFactor'] == 1.0) & (df['useCorrection'] == False)]
+df_ff2_cf = df[(df['filterFactor'] == 2.5) & (df['useCorrection'] == False)]
+df_ff3_ct = df[(df['filterFactor'] == 1.5) & (df['useCorrection'] == True)]
+df = pd.concat([df_ff1_cf, df_ff2_cf, df_ff3_ct], axis = 0)
+
+# %%
+indexed_mean_df = mean_df.set_index(all_indices)
+indexed_mean_df
+
+# %%
+stationary_df = mean_df[mean_df["Movement"] == "Stationary"]
+stationary_df = stationary_df.set_index(movement_indices)
+stationary_df.style.background_gradient(cmap=cm, subset = ["mean_Cp"])
+
+# %%
+surging_df = mean_df[mean_df["Movement"] == "Surging"]
+surging_df = surging_df.set_index(movement_indices)
+surging_df.style.background_gradient(cmap=cm, subset = ["mean_Cp"])
+
+# %%
+pitching_df = mean_df[mean_df["Movement"] == "Pitching"]
+pitching_df = pitching_df.set_index(movement_indices)
+pitching_df.style.background_gradient(cmap=cm, subset = ["mean_Cp"])
+
+# %% [markdown]
+# ## STD ($C_T' = 4.0$)
+
+# %%
+indexed_std_df = std_df.set_index(all_indices)
+indexed_std_df.style.background_gradient(cmap=cm, subset = ["std_Cp"])
+
+# %%
+stationary_df = std_df[std_df["Movement"] == "Stationary"]
+stationary_df = stationary_df.set_index(movement_indices)
+stationary_df.style.background_gradient(cmap=cm, subset = ["std_Cp"])
+
+# %%
+surging_df = std_df[std_df["Movement"] == "Surging"]
+surging_df = surging_df.set_index(movement_indices)
+surging_df.style.background_gradient(cmap=cm, subset = ["std_Cp"])
+
+# %%
+pitching_df = std_df[std_df["Movement"] == "Pitching"]
+pitching_df = pitching_df.set_index(movement_indices)
+pitching_df.style.background_gradient(cmap=cm, subset = ["std_Cp"])
+
+# %% [markdown]
+# ## Skew ($C_T' = 4.0$)
+
+# %%
+indexed_skew_df = skew_df.set_index(all_indices)
+indexed_skew_df.style.background_gradient(cmap=cm, subset = ["skewness_Cp"])
+
+# %%
+surging_df = skew_df[skew_df["Movement"] == "Surging"]
+surging_df = surging_df.set_index(movement_indices)
+surging_df.style.background_gradient(cmap=cm, subset = ["skewness_Cp"])
+
+# %%
+pitching_df = skew_df[skew_df["Movement"] == "Pitching"]
+pitching_df = pitching_df.set_index(movement_indices)
+pitching_df.style.background_gradient(cmap=cm, subset = ["skewness_Cp"])
+
+# %% [markdown]
+# ## Kurtosis ($C_T' = 4.0$)
+
+# %%
+indexed_kurtosis_df = kurtosis_df.set_index(all_indices)
+indexed_kurtosis_df.style.background_gradient(cmap=cm, subset = ["kurtosis_Cp"])
+
+# %%
+surging_df = kurtosis_df[kurtosis_df["Movement"] == "Surging"]
+surging_df = surging_df.set_index(movement_indices)
+surging_df.style.background_gradient(cmap=cm, subset = ["kurtosis_Cp"])
+
+# %%
+pitching_df = kurtosis_df[kurtosis_df["Movement"] == "Pitching"]
+pitching_df = pitching_df.set_index(movement_indices)
+pitching_df.style.background_gradient(cmap=cm, subset = ["kurtosis_Cp"])
