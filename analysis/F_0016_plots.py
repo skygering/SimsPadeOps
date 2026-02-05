@@ -32,7 +32,8 @@ import matplotlib.lines as mlines
 import matplotlib as mpl
 from matplotlib.font_manager import FontProperties
 
-mpl.rcParams['figure.dpi'] = 300
+# %matplotlib inline
+mpl.rcParams['figure.dpi'] = 100
 
 def calc_an(df, ud_key, uinf_key):
     return 1 - (df[ud_key] / df[uinf_key])
@@ -56,9 +57,9 @@ def round_phases(phase):
 
 
 rho, uinf, D, dt = 1, 1, 1, 0.05
-Ap_vals = [4, 8, 12, 16]
-As_vals = [0.2, 0.4, 0.6, 0.8, 1.0, 1.2]
-f_vals = [0.2, 0.4, 0.6, 0.8, 1.0, 1.2]
+Ap_vals = [0, 4, 8, 12, 16]
+As_vals = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2]
+f_vals = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2]
 ct_vals = [1.33, 1.66, 2.00, 2.33]
 
 # get UMM values
@@ -146,56 +147,11 @@ df_umm["UDisk_Turb"] = (1 - df_umm["an_Turb"]) * df_umm["UInf_Turb"]
 df_umm["UDisk_Ground"] = df_umm["UDisk_Turb"] + df_umm["UTurb"]
 df_umm["Phase_Rounded"] = round_phases(df_umm["Phase"])
 
+
 # %% [markdown]
 # # Get LES Data
 #
 # ## Filter LES Data
-
-# %%
-sim_keys = ["Movement", "Frequency", "Amplitude", "Local Thrust Coefficient"]
-
-# %%
-# read in LES data, remove "bad" data, and rename key columns
-df_les = pd.read_csv("/Users/sky/src/HowlandLab/data/sim_16_all_runs_data_points_01_30_26.csv")
-df_les = df_les.dropna()
-df_les["Model"] = "LES"
-df_les = df_les.rename(columns={'UDisk': 'UDisk_Turb', 'Thrust Coefficient': 'Local Thrust Coefficient'}) # disk velocity in the turbine frame of reference
-
-# %%
-# calculate needed LES quantities per datapoint/timestep
-df_les["UDisk_Ground"] = df_les["UDisk_Turb"] + df_les["UTurb"] # disk velocity in the ground frame of reference
-df_les["UInf_Turb"] = (uinf - df_les["UTurb"]) * np.cos(df_les["Tilt"])
-df_les["UInf_Ground"] = uinf * np.cos(df_les["Tilt"])
-
-df_les["an_Turb"] = calc_an(df_les, ud_key = "UDisk_Turb", uinf_key = "UInf_Turb")
-df_les["Ct_Turb"] = calc_ct(df_les, ud_key = "UDisk_Turb", uinf_key = "UInf_Ground")
-df_les["Cp_Turb"] = calc_cp(df_les, uinf_key = "UInf_Ground")
-
-# %%
-les_stationary_runs = df_les[(df_les["Frequency"] == 0) & (df_les["Amplitude"] == 0)]
-les_stationary_ct_vals = les_stationary_runs.groupby(sim_keys)["Ct_Turb"].mean().reset_index()
-les_stationary_Cts = dict([
-    (ctp, les_stationary_ct_vals[les_stationary_ct_vals["Local Thrust Coefficient"] == ctp]["Ct_Turb"].iloc[0])
-    for ctp in ct_vals
-])
-
-les_stationary_an_vals = les_stationary_runs.groupby(sim_keys)["an_Turb"].mean().reset_index()
-les_stationary_ans = dict([
-    (ctp, les_stationary_an_vals[les_stationary_an_vals["Local Thrust Coefficient"] == ctp]["an_Turb"].iloc[0])
-    for ctp in ct_vals
-])
-
-# %%
-# df_les = df_les[df_les["Frequency"] < 1.0]
-df_les = df_les[df_les["Frequency"] >= 0.2]
-# df_les = df_les[(((df_les["Movement"] == "Pitch") & (df_les["Amplitude"] < 20)) | ((df_les["Movement"] == "Surge") & (df_les["Amplitude"] < 1)))]
-
-df_les = (
-    df_les
-    .groupby(["Movement", "Frequency", "Amplitude", "Local Thrust Coefficient"])
-    .filter(lambda g: (g["Ct_Turb"].max() <= 100))
-)
-
 
 # %%
 def keep_sim(g):
@@ -212,26 +168,64 @@ def keep_sim(g):
     return True
 
 
+# %%
+def get_clean_les_data(file, sim_keys):
+    # read in LES data, remove "bad" data, and rename key columns
+    df_les = pd.read_csv(file)
+    df_les = df_les.dropna()
+    df_les["Model"] = "LES"
+    df_les = df_les.rename(columns={'UDisk': 'UDisk_Turb', 'Thrust Coefficient': 'Local Thrust Coefficient'}) # disk velocity in the turbine frame of reference
+
+    # calculate needed LES quantities per datapoint/timestep
+    df_les["UDisk_Ground"] = df_les["UDisk_Turb"] + df_les["UTurb"] # disk velocity in the ground frame of reference
+    df_les["UInf_Turb"] = (uinf - df_les["UTurb"]) * np.cos(df_les["Tilt"])
+    df_les["UInf_Ground"] = uinf * np.cos(df_les["Tilt"])
+
+    df_les["an_Turb"] = calc_an(df_les, ud_key = "UDisk_Turb", uinf_key = "UInf_Turb")
+    df_les["Ct_Turb"] = calc_ct(df_les, ud_key = "UDisk_Turb", uinf_key = "UInf_Ground")
+    df_les["Cp_Turb"] = calc_cp(df_les, uinf_key = "UInf_Ground")
+
+    les_stationary_runs = df_les[(df_les["Frequency"] == 0) & (df_les["Amplitude"] == 0)]
+    if len(les_stationary_runs) > 0:
+        les_stationary_ct_vals = les_stationary_runs.groupby(sim_keys)["Ct_Turb"].mean().reset_index()
+        les_stationary_Cts = dict([
+            (ctp, les_stationary_ct_vals[les_stationary_ct_vals["Local Thrust Coefficient"] == ctp]["Ct_Turb"].iloc[0])
+            for ctp in ct_vals
+        ])
+    else:
+        les_stationary_Cts = dict()
+
+    # df_les = df_les[df_les["Frequency"] != 0.0]
+    # df_les = df_les[(((df_les["Movement"] == "Pitch") & (df_les["Amplitude"] < 20)) | ((df_les["Movement"] == "Surge") & (df_les["Amplitude"] < 1)))]
+
+    df_les = (
+        df_les
+        .groupby(["Movement", "Frequency", "Amplitude", "Local Thrust Coefficient"])
+        .filter(lambda g: (g["Ct_Turb"].max() <= 100))
+    )
+
+    df_les = (
+        df_les
+        .groupby(["Movement", "Frequency", "Amplitude", "Local Thrust Coefficient"])
+        .filter(keep_sim)
+    )
+
+    df_les["Phase"] = (df_les["Time"] * df_les["Frequency"]) % 1.0
+    df_les["Phase_Rounded"] = round_phases(df_les["Phase"])
+    return df_les, les_stationary_Cts
+
 
 # %%
-df_les = (
-    df_les
-    .groupby(["Movement", "Frequency", "Amplitude", "Local Thrust Coefficient"])
-    .filter(keep_sim)
-)
-
-
-# %%
-df_les["Phase"] = (df_les["Time"] * df_les["Frequency"]) % 1.0
-df_les["Phase_Rounded"] = round_phases(df_les["Phase"])
+sim_keys = ["Movement", "Frequency", "Amplitude", "Local Thrust Coefficient"]
+df_les, les_stationary_Cts = get_clean_les_data("/Users/sky/src/HowlandLab/data/sim_16_all_runs_data_points_02_01_26.csv", sim_keys)
 
 
 # %% [markdown]
-# ## Initial LES Analysis (not phase-rounded)
+# ## Initial LES Analysis (not phase-binned)
 #
 # My idea here is that the UMM generated data has a very standardized shape. The maximum $C_T$ value is at $\phi = 0.5$, the minimum value is at $\phi = 0.0$, and the values cross over the mean $C_T$ value at $\phi = 0.25$ and $\phi = 0.75$.
 #
-# This isn't neccesarily true for the LES data. Therefore, I want to record the mean and max $C_T$ value for each period within a simulation and the phase that the min and max occur at. This should then be averaged over all periods within a simulation. I also want to record the phase as which the $C_T$ values within a simulation go from under the mean of the entire simulation to over the mean (around 0.25) and back from over the mean to under the mean (around 0.75). For finding the minimum, I think it would be easiest to work with a phase shifted by 0.5 (i.e `np.mod(phase + 0.5, 1)`). I also added in the standard deviations between the periods of a simulation.
+# This isn't neccesarily true for the LES data. Therefore, I want to record the mean and max $C_T$ value for each period within a simulation and the phase that the min and max occur at. This should then be averaged over all periods within a simulation. I also want to record the phase as which the $C_T$ values within a simulation go from under the mean of the entire simulation to over the mean (around 0.25) and back from over the mean to under the mean (around 0.75). 
 
 # %%
 def add_period_index(g):
@@ -242,26 +236,6 @@ def add_period_index(g):
     period[1:] = np.cumsum(np.diff(phase) < 0)
     g["Period"] = period
     return g
-
-
-# %%
-sub = df_les[
-    (df_les["Local Thrust Coefficient"] == 1.33) &
-    (df_les["Movement"] == "Surge") &
-    (df_les["Amplitude"] == 0.4) &
-    (df_les["Frequency"] == 0.4)
-].copy()
-sub = sub.sort_values("Time")
-sub = add_period_index(sub)
-
-sns.scatterplot(
-    data=sub,
-    x="Time",
-    y="Period",
-    palette="tab20",
-    hue = "Phase_Rounded"
-)
-plt.xlim(200, 210)
 
 
 # %%
@@ -328,14 +302,20 @@ def circ_diff(a, b):
 
 
 # %%
-def analyze_simulation(g, stationary_cts, normalize = False):
-    g = g.reset_index()  # ensure grouped columns are accessible
+def analyze_simulation(
+    g,
+    stationary_cts,
+    phase_key="Phase",
+    normalize=False
+):
+    g = g.reset_index(drop=True)
     g = g.sort_values("Time")
-    g = add_period_index(g)  # your existing function
+    g = add_period_index(g)
 
     # Determine stationary CT
     local_stationary_ct = g["Local Thrust Coefficient"].iloc[0]
     ct_stationary = stationary_cts[local_stationary_ct]
+    ct_stationary_norm = 1 if normalize else ct_stationary
 
     # Remove last period if incomplete
     period_counts = g["Period"].value_counts()
@@ -344,60 +324,100 @@ def analyze_simulation(g, stationary_cts, normalize = False):
     if period_counts[last_period] < full_count:
         g = g[g["Period"] != last_period]
 
-    # Initialize arrays
-    mean_cts, max_cts, max_phases = [], [], []
+    # Per-period storage
+    mean_cts = []
+    max_cts, max_phases = [], []
     min_cts, min_phases = [], []
-    up_cross_phases, down_cross_phases = [], []
+
+    up_cross_phases = []
+    down_cross_phases = []
+
+    # Per-period phase differences
+    extrema_phase_diffs = []
+    crossover_phase_diffs = []
+    up_to_max_diffs = []
+    max_to_down_diffs = []
+    skew = []
 
     # Loop through each period
     for _, p in g.groupby("Period"):
-        phase = p["Phase"].values
+        phase = p[phase_key].values
         ct = p["Ct_Turb"].values
+
         if normalize:
             ct = ct / ct_stationary
 
         # Mean CT
-        mean_cts.append(np.mean(ct))
+        mean_ct = np.mean(ct)
+        mean_cts.append(mean_ct)
 
         # Max CT
         i_max = np.argmax(ct)
+        phi_max = phase[i_max]
         max_cts.append(ct[i_max])
-        max_phases.append(phase[i_max])
+        max_phases.append(phi_max)
 
         # Min CT
         i_min = np.argmin(ct)
+        phi_min = phase[i_min]
         min_cts.append(ct[i_min])
-        min_phases.append(phase[i_min])
+        min_phases.append(phi_min)
 
-        # Strict mean crossings
-        up, down = strict_mean_crossings(phase, ct, ct_stationary)
-        if not np.isnan(up):
+        # Phase difference between extrema (circular)
+        extrema_phase_diffs.append(circ_diff(phi_max, phi_min))
+
+        # Mean crossings
+        up, down = strict_mean_crossings(phase, ct, mean_ct)
+        if not np.isnan(up) and not np.isnan(down):
             up_cross_phases.append(up)
             down_cross_phases.append(down)
 
-    # Return summary statistics
+            # Phase span between crossings
+            crossover_phase_diffs.append(circ_diff(up, down))
+
+            # Phase difference between crossings and maximum
+            d_up = circ_diff(phi_max, up)
+            d_down = circ_diff(down, phi_max)
+            up_to_max_diffs.append(d_up)
+            max_to_down_diffs.append(d_down)
+            skew.append(d_up - d_down)
+
     return pd.Series({
         # Linear CT statistics
         "avg_mean_CT": np.mean(mean_cts),
         "std_mean_CT": np.std(mean_cts, ddof=1),
+
         "avg_max_CT": np.mean(max_cts),
         "std_max_CT": np.std(max_cts, ddof=1),
+
         "avg_min_CT": np.mean(min_cts),
         "std_min_CT": np.std(min_cts, ddof=1),
 
         # Circular phase statistics
         "avg_phase_max_CT": circular_mean(max_phases),
         "std_phase_max_CT": circular_std(max_phases),
+
         "avg_phase_min_CT": circular_mean(min_phases),
         "std_phase_min_CT": circular_std(min_phases),
+
         "avg_phase_under_to_over_mean": circular_mean(up_cross_phases),
         "std_phase_under_to_over_mean": circular_std(up_cross_phases),
+
         "avg_phase_over_to_under_mean": circular_mean(down_cross_phases),
         "std_phase_over_to_under_mean": circular_std(down_cross_phases),
 
+        "avg_phase_extrema_diff": circular_mean(extrema_phase_diffs),
+        "std_phase_extrema_diff": circular_std(extrema_phase_diffs),
+
+        "avg_phase_crossover_diff": circular_mean(crossover_phase_diffs),
+        "std_phase_crossover_diff": circular_std(crossover_phase_diffs),
+
+        "avg_peak_skew_diff": circular_mean(skew),
+        "std_peak_skew_diff": circular_std(skew),
+
         # Bookkeeping
         "n_periods": g["Period"].nunique(),
-        "n_valid_crossings": len(up_cross_phases),
+        "n_valid_crossings": len(crossover_phase_diffs),
     })
 
 
@@ -413,49 +433,7 @@ def remove_high_variation_sims(df, err):
 # %%
 normalize = False
 
-# %%
-les_surge_sim_summary = (
-    df_les[df_les["Movement"] == "Surge"]
-    .groupby(sim_keys)
-    .apply(
-        analyze_simulation,
-        stationary_cts=les_stationary_Cts,
-        normalize=normalize,
-        include_groups=True
-    )
-    .reset_index()
-)
-les_surge_sim_summary = remove_high_variation_sims(les_surge_sim_summary, 0.1)
-
-# %%
-umm_surge_sim_summary = (
-    df_umm[df_umm["Movement"] == "Surge"]
-    .groupby(sim_keys)
-    .apply(
-        analyze_simulation,
-        stationary_cts=umm_stationary_Cts,
-        normalize=normalize,
-        include_groups=True
-    )
-    .reset_index()
-)
-umm_surge_sim_summary = remove_high_variation_sims(umm_surge_sim_summary, 0.1)
-
-# %%
-# ---- merge summaries ----
-diff_surge_sim_summary = (
-    umm_surge_sim_summary
-    .merge(
-        les_surge_sim_summary,
-        on=sim_keys,
-        suffixes=("_UMM", "_LES"),
-        how="inner"
-    )
-)
-
-# ---- list of quantities to difference ----
-# (mean_col, std_col)
-metrics = [
+ct_metrics = [
     ("avg_mean_CT", "std_mean_CT"),
     ("avg_max_CT", "std_max_CT"),
     ("avg_min_CT", "std_min_CT"),
@@ -463,43 +441,87 @@ metrics = [
     ("avg_phase_min_CT", "std_phase_min_CT"),
     ("avg_phase_under_to_over_mean", "std_phase_under_to_over_mean"),
     ("avg_phase_over_to_under_mean", "std_phase_over_to_under_mean"),
+    ("avg_phase_extrema_diff", "std_phase_extrema_diff"),
+    ("avg_phase_crossover_diff", "std_phase_crossover_diff"),
+    ("avg_peak_skew_diff", "std_peak_skew_diff")
 ]
 
-# ---- compute differences + quadrature std ----
-for mean_col, std_col in metrics:
-    diff_col = f"{mean_col}_diff"
-    std_diff_col = f"{std_col}_diff"
 
-    if "phase" in mean_col:
-        # use circular difference
-        diff_surge_sim_summary[diff_col] = circ_diff(
-            diff_surge_sim_summary[f"{mean_col}_UMM"],
-            diff_surge_sim_summary[f"{mean_col}_LES"]
+# %%
+def get_les_umm_summary_data(df_les, df_umm, les_stationary_vals, umm_stationary_vals, metrics, movement_key = "Surge", phase_key = "Phase", normalize = False, err = 0.05):
+    # get LES summaries
+    les_surge_sim_summary = (
+        df_les[df_les["Movement"] == movement_key]
+        .groupby(sim_keys, as_index=False)
+        .apply(
+            analyze_simulation,
+            stationary_cts=les_stationary_vals,
+            phase_key = phase_key,
+            normalize=normalize,
+            include_groups=True
         )
-    else:
-        # linear difference for CT metrics
-        diff_surge_sim_summary[diff_col] = (
-            diff_surge_sim_summary[f"{mean_col}_UMM"]
-            - diff_surge_sim_summary[f"{mean_col}_LES"]
+        .reset_index(drop=False)   
+    )
+    les_surge_sim_summary = remove_high_variation_sims(les_surge_sim_summary, err)
+    # get UMM summaries
+    umm_surge_sim_summary = (
+        df_umm[df_umm["Movement"] == movement_key]
+        .groupby(sim_keys, as_index=False)
+        .apply(
+            analyze_simulation,
+            stationary_cts=umm_stationary_vals,
+            phase_key = phase_key,
+            normalize=normalize,
+            include_groups=True
         )
+        .reset_index(drop=False)   
+    )
+    umm_surge_sim_summary = remove_high_variation_sims(umm_surge_sim_summary, err)
 
-    # std still adds in quadrature
-    diff_surge_sim_summary[std_diff_col] = np.sqrt(
-        diff_surge_sim_summary[f"{std_col}_UMM"]**2
-        + diff_surge_sim_summary[f"{std_col}_LES"]**2
+    # merge summaries
+    diff_surge_sim_summary = (
+        umm_surge_sim_summary
+        .merge(
+            les_surge_sim_summary,
+            on=sim_keys,
+            suffixes=("_UMM", "_LES"),
+            how="inner"
+        )
     )
 
-# ---- (optional but recommended) percent differences for CT metrics ----
-for base in ["avg_mean_CT", "avg_max_CT", "avg_min_CT"]:
-    diff_surge_sim_summary[f"{base}_pct_diff"] = (
-        diff_surge_sim_summary[f"{base}_diff"]
-        / np.abs(diff_surge_sim_summary[f"{base}_LES"])
-    )
+    # compute differences and quadrature std
+    for mean_col, std_col in metrics:
+        diff_col = f"{mean_col}_diff"
+        std_diff_col = f"{std_col}_diff"
 
-    diff_surge_sim_summary[f"{base}_pct_std"] = (
-        diff_surge_sim_summary[f"std_{base.split('_',1)[1]}_diff"]
-        / np.abs(diff_surge_sim_summary[f"{base}_LES"])
-    )
+        if "phase" in mean_col:
+            # use circular difference
+            diff_surge_sim_summary[diff_col] = circ_diff(
+                diff_surge_sim_summary[f"{mean_col}_UMM"],
+                diff_surge_sim_summary[f"{mean_col}_LES"]
+            )
+        else:
+            # linear difference for CT metrics
+            diff_surge_sim_summary[diff_col] = (
+                diff_surge_sim_summary[f"{mean_col}_UMM"]
+                - diff_surge_sim_summary[f"{mean_col}_LES"]
+            )
+
+        # std adds in quadrature
+        diff_surge_sim_summary[std_diff_col] = np.sqrt(
+            diff_surge_sim_summary[f"{std_col}_UMM"]**2
+            + diff_surge_sim_summary[f"{std_col}_LES"]**2
+        )
+    return diff_surge_sim_summary, les_surge_sim_summary, umm_surge_sim_summary
+
+
+# %%
+df_les
+
+# %%
+diff_surge_sim_summary, les_surge_sim_summary, umm_surge_sim_summary = get_les_umm_summary_data(df_les, df_umm, les_stationary_Cts, umm_stationary_Cts,
+                                                                                                ct_metrics, movement_key = "Surge", phase_key = "Phase",
+                                                                                                normalize = normalize, err = 0.05)
 
 # %%
 ct_ylabel_raw = {
@@ -515,6 +537,22 @@ ct_ylabel_raw = {
 
     "avg_phase_over_to_under_mean":
         r"$\overline{\phi_{C_T \downarrow C_{T_{\text{FB}}}}}$",
+
+    "avg_phase_extrema_diff":
+        r"$\overline{\phi_{\mathrm{max-min}}}$",
+
+    "avg_phase_crossover_diff":
+        r"$\overline{\phi_{\mathrm{\uparrow - \downarrow}}}$",
+
+    "avg_phase_up_to_max_diff":
+        r"$\overline{\phi_{\mathrm{\uparrow - max}}}$",
+
+    "avg_phase_max_to_down_diff":
+        r"$\overline{\phi_{\mathrm{max - \downarrow}}}$",
+
+    "avg_peak_skew_diff":
+        r" $\overline{\Delta \phi_{\uparrow\to\max} - \Delta \phi_{\max\to\downarrow}}$"
+
 }
 ct_ylabel_normalized = {
     "avg_mean_CT":
@@ -537,6 +575,21 @@ ct_ylabel_normalized = {
 
     "avg_phase_over_to_under_mean":
         r"$\overline{\phi_{C_T \downarrow C_{T_{FB}}}}$",
+
+    "avg_phase_extrema_diff":
+        r"$\overline{\phi_{\mathrm{max-min}}}$",
+
+    "avg_phase_crossover_diff":
+        r"$\overline{\phi_{\mathrm{\uparrow - \downarrow}}}$",
+
+    "avg_phase_up_to_max_diff":
+        r"$\overline{\phi_{\mathrm{\uparrow - max}}}$",
+
+    "avg_phase_max_to_down_diff":
+        r"$\overline{\phi_{\mathrm{max - \downarrow}}}$",
+
+    "avg_peak_skew_diff":
+        r" $\overline{\Delta \phi_{\uparrow\to\max} - \Delta \phi_{\max\to\downarrow}}$"
 }
 
 def get_ct_ylabel(metric, normalize=False):
@@ -548,15 +601,12 @@ def get_ct_ylabel(metric, normalize=False):
 
 
 # %%
-diff_surge_sim_summary
-
-
-# %%
 def umm_les_data_plot(df,
     y_key="avg_max_CT",
     y_err_key="std_max_CT",   # <-- column with SEM or std
     y_label = "$\\overline{C_{T_{\\text{LES}}}}$",
-    linewidth = 1
+    linewidth = 1,
+    title = ""
 ):
     g = sns.FacetGrid(
         df,
@@ -599,7 +649,7 @@ def umm_les_data_plot(df,
                 linewidth=linewidth,
                 marker=None,
                 capsize=3,
-                alpha=0.6,
+                alpha=0.5,
                 label=f"{freq:.2f} St",
                 zorder = 1
             )
@@ -611,13 +661,14 @@ def umm_les_data_plot(df,
                 linestyle="None",
                 marker="o",
                 color=color_map[freq],
-                zorder = 2
+                zorder = 2,
+                alpha=0.65,
             )
-
 
     # Axis + titles
     g.set_axis_labels("$A_S = \max{(U_{t} / U_\infty)}$", y_label)
     g.set_titles(col_template=r"$C_T'$ = {col_name}")
+    g.fig.suptitle(title, y = 1.125)
 
     # --- Create custom legend ---
     color_handles = [
@@ -636,33 +687,31 @@ def umm_les_data_plot(df,
         frameon=False,
     )
 
-# %%
-umm_surge_sim_summary["avg_phase_max_CT"]
 
 # %%
-for metric in metrics:
+for metric in ct_metrics:
     y_key, y_err_key = metric
 
     y_key = y_key
     y_err_key = y_err_key
     y_label = "UMM: " + get_ct_ylabel(y_key, normalize=normalize)
 
-    umm_les_data_plot(umm_surge_sim_summary, y_key, y_err_key, y_label)
+    # umm_les_data_plot(umm_surge_sim_summary, y_key, y_err_key, y_label)
     
 
 # %%
-for metric in metrics:
+for metric in ct_metrics:
     y_key, y_err_key = metric
 
     y_key = y_key
     y_err_key = y_err_key
     y_label = "LES: " + get_ct_ylabel(y_key, normalize=normalize)
 
-    umm_les_data_plot(les_surge_sim_summary, y_key, y_err_key, y_label)
+    # umm_les_data_plot(les_surge_sim_summary, y_key, y_err_key, y_label)
     
 
 # %%
-for metric in metrics:
+for metric in ct_metrics:
     y_key, y_err_key = metric
 
     y_label = "$\Delta$" + get_ct_ylabel(y_key, normalize=normalize)
@@ -670,8 +719,504 @@ for metric in metrics:
     y_key = y_key + "_diff"
     y_err_key = y_err_key + "_diff"
 
-    umm_les_data_plot(diff_surge_sim_summary, y_key, y_err_key, y_label)
+    umm_les_data_plot(diff_surge_sim_summary, y_key, y_err_key, y_label, title = "Surging Turbine Difference between UMM and LES")
+
+# %%
+TITLE_FONTSIZE = 16
+LABEL_FONTSIZE = 14
+TICK_FONTSIZE = 12
+CONTOUR_LABEL_FONTSIZE = 12
+LINE_WIDTH = 1.5
+
+# ykey = "avg_mean_CT_diff"
+ykey = "avg_max_CT_diff"
+# ykey = "avg_min_CT_diff"
+# ykey = "avg_phase_max_CT_diff"
+
+# ---- Get thrust coefficient values ----
+ct_vals = np.sort(diff_surge_sim_summary["Local Thrust Coefficient"].unique())
+assert len(ct_vals) == 4, "Expected exactly four Local Thrust Coefficient values"
+
+# ---- Global contour levels (even spacing) ----
+vmin = diff_surge_sim_summary[ykey].min()
+vmax = diff_surge_sim_summary[ykey].max()
+levels = np.linspace(vmin, vmax, 12)
+
+
+# ---- Figure setup ----
+fig, axes = plt.subplots(
+    2, 2,
+    sharex=True,
+    sharey=True
+)
+
+axes = axes.flatten()
+
+for ax, ct in zip(axes, ct_vals):
+    sub = diff_surge_sim_summary[
+        diff_surge_sim_summary["Local Thrust Coefficient"] == ct
+    ]
+
+    # Pivot to grid
+    Z = sub.pivot(
+        index="Frequency",
+        columns="Amplitude",
+        values=ykey
+    )
+
+    X = Z.columns.values
+    Y = Z.index.values
+    Xg, Yg = np.meshgrid(X, Y)
+
+    # ---- Filled contours ----
+    cf = ax.contourf(
+        Xg, Yg, Z.values,
+        levels=levels,
+        extend="both"
+    )
+
+    # ---- Contour lines ----
+    cs = ax.contour(
+        Xg, Yg, Z.values,
+        levels=levels,
+        linewidths=LINE_WIDTH,
+        colors="k"
+    )
+
+    ax.clabel(
+        cs,
+        inline=True,
+        fontsize=CONTOUR_LABEL_FONTSIZE,
+        fmt="%.2f"
+    )
+    non_nan_mask = ~(np.isnan(Z.values))
+    ax.scatter(Xg[non_nan_mask], Yg[non_nan_mask], marker = "+", color = "k")
+
+    # ---- Labels & formatting ----
+    ax.set_title(f"$C_T' = {ct}$", fontsize=TITLE_FONTSIZE)
+    ax.set_xlabel("Amplitude", fontsize=LABEL_FONTSIZE)
+    ax.set_ylabel("Frequency", fontsize=LABEL_FONTSIZE)
+
+    ax.tick_params(labelsize=TICK_FONTSIZE)
+
+# ---- Shared colorbar ----
+# Leave space on the right for the colorbar
+fig.subplots_adjust(right=0.86)
+# Add a new axis for the colorbar
+cax = fig.add_axes([0.88, 0.15, 0.03, 0.7])
+cbar = fig.colorbar(cf, cax=cax)
+cbar.set_label("avg_max_CT_diff", fontsize=LABEL_FONTSIZE)
+cbar.ax.tick_params(labelsize=TICK_FONTSIZE)
+
+fig.subplots_adjust(
+    left=0.08,    # space on left
+    right=0.86,   # leave room for colorbar on right
+    bottom=0.1,   # space at bottom for x-labels
+    top=0.92,     # space at top for titles
+    wspace=0.3,   # horizontal spacing between subplots
+    hspace=0.35   # vertical spacing between subplots
+)
+
+
+# %%
+def check_movement_values_grid_dual(
+    df_les,
+    df_umm,
+    x_key="Phase_Rounded",
+    y_key="Ct_Turb",
+    ylabel=None,
+):
+    # Get unique facet values
+    freqs = sorted(df_les["Frequency"].unique())
+    ltcs = sorted(df_les["Local Thrust Coefficient"].unique())
+    amps = sorted(df_les["Amplitude"].unique())
+
+    # Create FacetGrid by row=Frequency, col=LTC
+    g = sns.FacetGrid(
+        df_les,
+        row="Frequency",
+        col="Local Thrust Coefficient",
+        margin_titles=True,
+        sharex=True,
+        sharey=True,
+        height=3,
+        aspect=1.2
+    )
+
+    # Consistent color map by amplitude
+    palette = sns.color_palette("tab10", n_colors=len(amps))
+    color_map = dict(zip(amps, palette))
+
+    # Marker/linestyle map for dataset
+    dataset_styles = {
+        "LES": {"linestyle": "-", "marker": "o"},
+        "UMM": {"linestyle": "--", "marker": "s"}
+    }
+
+    # Loop over all facets
+    for (freq, ltc), ax in g.axes_dict.items():
+        df_les_sub = df_les[
+            (df_les["Frequency"] == freq) &
+            (df_les["Local Thrust Coefficient"] == ltc)
+        ].sort_values("Phase_Rounded")
+        df_umm_sub = df_umm[
+            (df_umm["Frequency"] == freq) &
+            (df_umm["Local Thrust Coefficient"] == ltc)
+        ].sort_values("Phase_Rounded")
+
+        ltc_val = les_stationary_Cts[ltc]
+
+        for amp in amps:
+            # fixed bottom
+            ax.hlines(y = ltc_val, xmin = 0, xmax = 1, label = "Fixed Bottom $C_T$", color = "k", linestyle = "--")
+            # LES
+            df_amp_les = df_les_sub[df_les_sub["Amplitude"] == amp]
+            if not df_amp_les.empty:
+                ax.plot(
+                    df_amp_les[x_key],
+                    df_amp_les[y_key],
+                    color=color_map[amp],
+                    linestyle=dataset_styles["LES"]["linestyle"],
+                    marker=dataset_styles["LES"]["marker"],
+                    alpha=0.7,
+                    zorder = 2
+                )
+
+            # UMM
+            df_amp_umm = df_umm_sub[df_umm_sub["Amplitude"] == amp]
+            if not df_amp_umm.empty:
+                ax.plot(
+                    df_amp_umm[x_key],
+                    df_amp_umm[y_key],
+                    color=color_map[amp],
+                    linestyle=dataset_styles["UMM"]["linestyle"],
+                    marker=dataset_styles["UMM"]["marker"],
+                    alpha=0.7,
+                    zorder = 2
+                )
+
+    # Axis labels and titles
+    if ylabel is None:
+        ylabel = y_key
+    g.set_axis_labels("Phase $\phi$", ylabel, size=12)
+    g.set_titles(col_template=r"$C_T'$ = {col_name}", row_template="f = {row_name} Hz", size=14)
+    for ax in g.axes.flatten():
+        ax.tick_params(axis='x', labelsize=11)
+        ax.tick_params(axis='y', labelsize=11)
+
+    # --- Create two-part legend ---
+    import matplotlib.lines as mlines
+
+    # 1) Colors for amplitudes
+    amp_handles = [
+        mlines.Line2D([], [], color=color_map[amp], marker='o', linestyle='None', markersize=8)
+        for amp in amps
+    ]
+    amp_labels = [f"$A_S = {amp:.1f}$" for amp in amps]
+
+    # 2) Shapes/linestyles for datasets
+    dataset_handles = (
+        [mlines.Line2D([], [], color='k', marker=dataset_styles[ds]["marker"],
+                    linestyle=dataset_styles[ds]["linestyle"], markersize=8)
+        for ds in ["LES", "UMM"]] +
+        [mlines.Line2D([], [], color='k', linestyle='--', markersize=8)]
+    )
+
+    dataset_labels = ["LES", "UMM", "Fixed Bottom $C_T$"]
+
+
+    # Add both legends
+    leg1 = g.fig.legend(amp_handles, amp_labels, loc="upper center",
+                        ncol=3, frameon=False, fontsize=12, title_fontsize=12)
+
+    leg2 = g.fig.legend(dataset_handles, dataset_labels, loc="upper center",
+                        ncol=len(dataset_handles), frameon=False, fontsize=12, title_fontsize=12,
+                        bbox_to_anchor=(0.5, 0.96))
     
+
+    # Make sure both are visible
+    g.fig.add_artist(leg1)
+
+# %%
+diff_surge_sim_summary
+
+# %%
+diff_pitch_sim_summary, les_pitch_sim_summary, umm_pitch_sim_summary = get_les_umm_summary_data(df_les, df_umm, les_stationary_Cts, umm_stationary_Cts,
+                                                                                                ct_metrics, movement_key = "Pitch", phase_key = "Phase",
+                                                                                                normalize = normalize, err = 0.05,
+)
+
+# %%
+for metric in ct_metrics:
+    y_key, y_err_key = metric
+
+    y_label = "$\Delta$" + get_ct_ylabel(y_key, normalize=normalize)
+
+    y_key = y_key + "_diff"
+    y_err_key = y_err_key + "_diff"
+
+    if "phase" not in y_key:
+        umm_les_data_plot(diff_pitch_sim_summary, y_key, y_err_key, y_label, title = "Pitching Turbine Difference between UMM and LES")
+    
+
+# %% [markdown]
+# ## Surging + Pitching Runs
+
+# %%
+df_both_les, _ = get_clean_les_data("/Users/sky/src/HowlandLab/data/sim_20_all_runs_data_points_02_01_26.csv", sim_keys + ["PitchAmp"])
+
+df_both_les = df_both_les[(df_both_les["Amplitude"] < 0.8) & (df_both_les["Frequency"] < 1)]
+
+
+# %%
+def add_surge_only_to_both(df_both_les, df_les):
+    """
+    Add surge-only simulations from df_single_les into df_both_les.
+    Sets Pitch_Amp = 0 and matches on Frequency, Surge_Amp, and Local Thrust Coefficient.
+    Avoids duplicates.
+    """
+    df_surge_les = df_les[df_les["Movement"] == "Surge"]
+    # Columns to match
+    match_cols = ["Frequency", "Amplitude", "Local Thrust Coefficient"]
+
+    # Only keep rows in df_surge that exist in df_both_les (matching all three columns)
+    matching_surge = df_surge_les.merge(
+        df_both_les[match_cols],
+        on=match_cols,
+        how="inner"
+    )
+
+    # Set Pitch_Amp to zero for these rows
+    matching_surge = matching_surge.copy()
+    matching_surge["PitchAmp"] = 0
+
+    # Add to df_both_les
+    df_both_les = pd.concat([df_both_les, matching_surge], ignore_index=True)
+    return df_both_les
+
+
+# %%
+les_surge_pitch_sim_summary = (
+    df_both_les
+    .groupby(sim_keys + ["PitchAmp"])
+    .apply(
+        analyze_simulation,
+        stationary_cts=les_stationary_Cts,
+        phase_key = "Phase",
+        normalize=normalize,
+        include_groups=True
+    )
+    .reset_index()
+)
+les_surge_pitch_sim_summary = remove_high_variation_sims(les_surge_pitch_sim_summary, 0.05)
+
+# %%
+les_surge_pitch_sim_summary = add_surge_only_to_both(les_surge_pitch_sim_summary, les_surge_sim_summary)
+
+
+# %%
+def umm_les_both_data_plot(df, y_key, y_err_key, y_label, title = "Pitching Turbine Difference between UMM and LES"):
+    g = sns.FacetGrid(
+        df,
+        col="Local Thrust Coefficient",
+        row = "Frequency",
+        margin_titles=True,
+        sharex=True,
+        sharey=True,
+        height=3,
+        aspect=1.2,
+    )
+
+    # Global frequency ordering
+    pitch_amp_all = np.sort(df["PitchAmp"].unique())
+    pitch_amp_plot = pitch_amp_all[::-1]   # largest plotted first
+
+    # Consistent colors across facets
+    colors = sns.color_palette("tab10", len(pitch_amp_all))
+    color_map = dict(zip(pitch_amp_all, colors))
+
+    for (freq, ltc), ax in g.axes_dict.items():
+        df_ltc_freq = df[(df["Local Thrust Coefficient"] == ltc) & (df["Frequency"] == freq)]
+        for pamp in pitch_amp_plot:
+            df_sub = (
+                df_ltc_freq[df_ltc_freq["PitchAmp"] == pamp]
+                .sort_values("Amplitude")
+            )
+
+            if df_sub.empty:
+                continue
+
+            # --- error bars + line (transparent) ---
+            ax.errorbar(
+                df_sub["Amplitude"],
+                df_sub[y_key],
+                yerr=df_sub[y_err_key] if y_err_key in df_sub else None,
+                color=color_map[pamp],
+                linestyle="solid",
+                linewidth=1,
+                marker=None,
+                capsize=3,
+                alpha=0.5,
+                label=f"{pamp:.2f} Pitch Amplitude",
+                zorder = 1
+            )
+
+            # --- markers only (opaque) ---
+            ax.plot(
+                df_sub["Amplitude"],
+                df_sub[y_key],
+                linestyle="None",
+                marker="o",
+                color=color_map[pamp],
+                zorder = 2,
+                alpha=0.65,
+            )
+
+    # Axis + titles
+    g.set_axis_labels("$A_S = \max{(U_{t} / U_\infty)}$", y_label)
+    g.set_titles(col_template=r"$C_T'$ = {col_name}")
+    g.fig.suptitle(title, y = 1.125)
+
+    # --- Create custom legend ---
+    color_handles = [
+        mlines.Line2D([], [], color=color_map[p], linestyle='solid', linewidth=1, marker = "o")
+        for p in pitch_amp_plot[::-1]
+    ]
+    color_labels = [f"{f:.2f} degrees" for f in pitch_amp_plot[::-1]]
+
+    g.fig.legend(
+        color_handles,
+        color_labels,
+        title="Pitch Amplitude",
+        loc="upper center",
+        bbox_to_anchor=(0.5, 1.1),
+        ncol=6,
+        frameon=False,
+    )
+
+
+# %%
+def umm_les_both_data_plot_freq(df, y_key, y_err_key, y_label, title="Pitching Turbine Difference between UMM and LES"):
+    g = sns.FacetGrid(
+        df,
+        col="Local Thrust Coefficient",
+        margin_titles=True,
+        sharex=True,
+        sharey=True,
+        height=3,
+        aspect=1.2,
+        col_wrap=2
+    )
+
+    # Pitch amplitudes as colors
+    pitch_amp_all = np.sort(df["PitchAmp"].unique())
+    colors = sns.color_palette("tab10", len(pitch_amp_all))
+    pitch_color_map = dict(zip(pitch_amp_all, colors))
+
+    # Frequencies as marker shapes
+    freqs_all = np.sort(df["Frequency"].unique())
+    markers = ['o', 's', 'P', 'd']  # extend if needed
+    freq_marker_map = dict(zip(freqs_all, markers[:len(freqs_all)]))
+
+    for ltc, ax in g.axes_dict.items():
+        df_ltc = df[df["Local Thrust Coefficient"] == ltc]
+
+        for freq in freqs_all:
+            df_freq = df_ltc[df_ltc["Frequency"] == freq]
+            for pamp in pitch_amp_all:
+                df_sub = df_freq[df_freq["PitchAmp"] == pamp].sort_values("Amplitude")
+                if df_sub.empty:
+                    continue
+
+                # Error bars + line (transparent)
+                ax.errorbar(
+                    df_sub["Amplitude"],
+                    df_sub[y_key],
+                    yerr=df_sub[y_err_key] if y_err_key in df_sub else None,
+                    color=pitch_color_map[pamp],
+                    linestyle='solid',
+                    linewidth=1,
+                    marker=None,
+                    capsize=3,
+                    alpha=0.5,
+                    zorder=1
+                )
+
+                # Markers only (opaque)
+                ax.plot(
+                    df_sub["Amplitude"],
+                    df_sub[y_key],
+                    linestyle='None',
+                    marker=freq_marker_map[freq],
+                    color=pitch_color_map[pamp],
+                    zorder=2,
+                    markeredgecolor='k',
+                    markeredgewidth=0.5,
+                )
+
+
+    # Axis + titles
+    g.set_axis_labels("$A_S = \max(U_t / U_\infty)$", y_label)
+    g.set_titles(col_template=r"$C_T'$ = {col_name}")
+    g.fig.suptitle(title, y=1.25)
+
+    # --- Pitch amplitude legend (colors) ---
+    pitch_handles = [
+        mlines.Line2D([], [], color=pitch_color_map[p], marker='o', linestyle='None', markersize=6)
+        for p in pitch_amp_all
+    ]
+    pitch_labels = [f"{int(round(p))}°" for p in pitch_amp_all]
+
+
+    # --- Frequency legend (shapes) ---
+    freq_handles = [
+        mlines.Line2D([], [], color='k', marker=freq_marker_map[f], linestyle='None', markersize=6)
+        for f in freqs_all
+    ]
+    freq_labels = [f"{f:.2f} St" for f in freqs_all]
+
+    # Combine legends
+    g.fig.legend(
+        pitch_handles, pitch_labels,
+        loc="upper center",
+        bbox_to_anchor=(0.5, 1.2),
+        ncol=4,
+        frameon=False,
+        title_fontsize=10,
+        handletextpad=0.5
+    )
+    g.fig.legend(
+        freq_handles, freq_labels,
+        loc="upper center",
+        bbox_to_anchor=(0.5, 1.12),
+        ncol=3,
+        frameon=False,
+        title_fontsize=10,
+        handletextpad=0.5
+    )
+
+
+# %%
+for metric in ct_metrics:
+    y_key, y_err_key = metric
+
+    y_label = get_ct_ylabel(y_key, normalize=normalize)
+
+    y_key = y_key
+    y_err_key = y_err_key
+
+    # umm_les_both_data_plot(les_surge_pitch_sim_summary, y_key, y_err_key, y_label, title = "Surging and Pitching Turbine LES")
+
+# %%
+for metric in ct_metrics:
+    y_key, y_err_key = metric
+
+    y_label = get_ct_ylabel(y_key, normalize=normalize)
+
+    y_key = y_key
+    y_err_key = y_err_key
+
+    umm_les_both_data_plot_freq(les_surge_pitch_sim_summary, y_key, y_err_key, y_label, title = "Surging and Pitching Turbine LES")
 
 # %% [markdown]
 # ## Phase-Rounded Analysis
@@ -732,12 +1277,13 @@ g = sns.FacetGrid(
 # Global frequency ordering
 freqs_all = np.sort(phase_max_les_vals["Frequency"].unique())
 freqs_plot = freqs_all[::-1]   # largest plotted first
+print(freqs_plot)
 
 # Consistent colors across facets
 colors = sns.color_palette("tab10", len(freqs_all))
 color_map = dict(zip(freqs_all, colors))
 
-marker_map = dict(zip(freqs_all, ["P", "v", "*", "d", "o", "s"]))
+marker_map = dict(zip(freqs_all, ["P", "v", "*", "d", "o", "s", "p", "H"]))
 
 for ltc, ax in g.axes_dict.items():
     df_ltc = phase_max_les_vals[phase_max_les_vals["Local Thrust Coefficient"] == ltc]
@@ -836,117 +1382,6 @@ def check_movement_values_grid(df, x_key = "Phase_Rounded", y_key = "Ct_Turb", y
 
 
 # %%
-def check_movement_values_grid_dual(
-    df_les,
-    df_umm,
-    x_key = "Phase_Rounded",
-    y_key="Ct_Turb",
-    ylabel = None,
-):
-    # Get unique facet values
-    freqs = sorted(df_les["Frequency"].unique())
-    ltcs = sorted(df_les["Local Thrust Coefficient"].unique())
-    amps = sorted(df_les["Amplitude"].unique())
-
-    # Create FacetGrid by row=Frequency, col=LTC, hue=Amplitude
-    g = sns.FacetGrid(
-        df_les,
-        row="Frequency",
-        col="Local Thrust Coefficient",
-        hue="Amplitude",
-        margin_titles=True,
-        sharex=True,
-        sharey=True,
-        height=3,
-        aspect=1.2
-    )
-
-    # Consistent color map by amplitude
-    palette = sns.color_palette("tab10", n_colors=len(amps))
-    color_map = dict(zip(amps, palette))
-
-    # Define markers / line styles for LES vs UMM
-    dataset_styles = {
-        "LES": {"linestyle": "-", "marker": "o"},
-        "UMM": {"linestyle": "--", "marker": "s"}
-    }
-
-    # Loop over all facets
-    for (freq, ltc), ax in g.axes_dict.items():
-        # LES subset
-        df_les_sub = df_les[
-            (df_les["Frequency"] == freq) &
-            (df_les["Local Thrust Coefficient"] == ltc)
-        ].sort_values("Phase_Rounded")
-
-        # UMM subset
-        df_umm_sub = df_umm[
-            (df_umm["Frequency"] == freq) &
-            (df_umm["Local Thrust Coefficient"] == ltc)
-        ].sort_values("Phase_Rounded")
-
-        # Plot each amplitude separately
-        for amp in amps:
-            # LES
-            df_amp_les = df_les_sub[df_les_sub["Amplitude"] == amp]
-            if not df_amp_les.empty:
-                ax.plot(
-                    df_amp_les[x_key],
-                    df_amp_les[y_key],
-                    color=color_map[amp],
-                    linestyle=dataset_styles["LES"]["linestyle"],
-                    marker=dataset_styles["LES"]["marker"],
-                    label=f"LES, A={amp}",
-                    alpha = 0.7
-                )
-
-            # UMM
-            df_amp_umm = df_umm_sub[df_umm_sub["Amplitude"] == amp]
-            if not df_amp_umm.empty:
-                ax.plot(
-                    df_amp_umm[x_key],
-                    df_amp_umm[y_key],
-                    color=color_map[amp],
-                    linestyle=dataset_styles["UMM"]["linestyle"],
-                    marker=dataset_styles["UMM"]["marker"],
-                    label=f"UMM, A={amp}",
-                    alpha = 0.7
-                )
-
-    # Axis labels and titles
-    if ylabel is None:
-        ylabel = y_key
-    g.set_axis_labels("Phase", ylabel)
-    g.set_titles(
-        col_template=r"$C_T'$ = {col_name}",
-        row_template="f = {row_name} Hz"
-    )
-
-    # Create a single legend combining both datasets
-    handles, labels = [], []
-    for ax in g.axes.flat:
-        h, l = ax.get_legend_handles_labels()
-        handles += h
-        labels += l
-
-    # Remove duplicates
-    from collections import OrderedDict
-    by_label = OrderedDict(zip(labels, handles))
-    g.fig.legend(
-        by_label.values(),
-        by_label.keys(),
-        title="Dataset / Amplitude",
-        loc="upper center",
-        ncol=4,
-        frameon=False
-    )
-
-    plt.tight_layout(rect=[0, 0, 1, 0.9])
-    plt.show()
-
-
-
-# %%
 df_umm_surge = df_umm_sub[df_umm_sub["Movement"] == "Surge"]
 df_umm_pitch = df_umm_sub[df_umm_sub["Movement"] == "Pitch"]
 check_movement_values_grid(df_umm_pitch, y_key = "Ct_Turb")
@@ -964,9 +1399,39 @@ df_les_pitch = df_les_sub[df_les_sub["Movement"] == "Pitch"]
 check_movement_values_grid(df_les_pitch, y_key = "Ct_Turb")
 
 # %%
+sub_les = df_les_surge[
+    ((df_les_surge["Local Thrust Coefficient"] == 1.33) | (df_les_surge["Local Thrust Coefficient"] == 2.00)) &
+    ((df_les_surge["Frequency"] == 0.4) | (df_les_surge["Frequency"] == 0.8)) &
+    ((df_les_surge["Amplitude"] == 0.2) | (df_les_surge["Amplitude"] == 0.6) | (df_les_surge["Amplitude"] == 1.2))
+]
+sub_umm = df_umm_surge[
+    ((df_umm_surge["Local Thrust Coefficient"] == 1.33) | (df_umm_surge["Local Thrust Coefficient"] == 2.00)) &
+    ((df_umm_surge["Frequency"] == 0.4) | (df_umm_surge["Frequency"] == 0.8)) &
+    ((df_umm_surge["Amplitude"] == 0.2) | (df_umm_surge["Amplitude"] == 0.6) | (df_umm_surge["Amplitude"] == 1.2))
+]
+
 check_movement_values_grid_dual( #TODO: it would be good to swap these to 
-    df_les_surge,
-    df_umm_surge,
+    sub_les,
+    sub_umm,
+    y_key="Ct_Turb",
+    ylabel = "$C_T$",
+    )
+
+# %%
+sub_les = df_les_pitch[
+    ((df_les_pitch["Local Thrust Coefficient"] == 1.33) | (df_les_pitch["Local Thrust Coefficient"] == 2.00)) &
+    ((df_les_pitch["Frequency"] == 0.4) | (df_les_pitch["Frequency"] == 0.8)) &
+    ((df_les_pitch["Amplitude"] == 4) | (df_les_pitch["Amplitude"] == 8) | (df_les_pitch["Amplitude"] == 16))
+]
+sub_umm = df_umm_pitch[
+    ((df_umm_pitch["Local Thrust Coefficient"] == 1.33) | (df_umm_pitch["Local Thrust Coefficient"] == 2.00)) &
+    ((df_umm_pitch["Frequency"] == 0.4) | (df_umm_pitch["Frequency"] == 0.8)) &
+    ((df_umm_pitch["Amplitude"] == 4) | (df_umm_pitch["Amplitude"] == 8) | (df_umm_pitch["Amplitude"] == 16))
+]
+
+check_movement_values_grid_dual( #TODO: it would be good to swap these to 
+    sub_les,
+    sub_umm,
     y_key="Ct_Turb",
     ylabel = "$C_T$",
     )
@@ -1558,5 +2023,113 @@ diff_grid_mean_min_max(df_stats_surge,
 
 # plt.tight_layout(rect=[0, 0, 1, 0.9])
 
+
+# %%
+df_both_les.keys()
+
+# %%
+sub = df_both_les[(df_both_les["Frequency"] == 0.4) & (df_both_les["Amplitude"] == 0.4) & (df_both_les["Local Thrust Coefficient"] == 1.33) & (df_both_les["PitchAmp"] == 8)]
+
+# %%
+plt.scatter(sub["Time"], sub["Ct_Turb"])
+plt.xlim(200, 225)
+
+# %%
+df_both_les_avg = df_both_les.groupby(group_keys + ["PitchAmp"])[value_keys].mean().reset_index()
+# df_both_les_sub = df_both_les_avg[cols_to_merge + ["PitchAmp"]]
+
+# %%
+df_both_les_sub = df_both_les_avg[df_both_les_avg["Frequency"] == 0.4]
+
+# %%
+df_both_les_sub
+
+# %%
+# Get unique facet values
+freqs = sorted(df_both_les_sub["Frequency"].unique())
+ltcs = sorted(df_both_les_sub["Local Thrust Coefficient"].unique())
+amps = sorted(df_both_les_sub["Amplitude"].unique())
+pitch_amps = sorted(df_both_les_sub["PitchAmp"].unique())
+
+# Create FacetGrid by row=Frequency, col=LTC
+g = sns.FacetGrid(
+    df_both_les_sub,
+    row="PitchAmp",
+    col="Local Thrust Coefficient",
+    margin_titles=True,
+    sharex=True,
+    sharey=True,
+    height=3,
+    aspect=1.2
+)
+
+# Consistent color map by amplitude
+palette = sns.color_palette("tab10", n_colors=len(amps))
+color_map = dict(zip(amps, palette))
+
+# Loop over all facets
+for (pamp, ltc), ax in g.axes_dict.items():
+    df_les_sub = df_both_les_sub[
+        (df_both_les_sub["PitchAmp"] == pamp) &
+        (df_both_les_sub["Local Thrust Coefficient"] == ltc)
+    ].sort_values("Phase_Rounded")
+    print(df_les_sub)
+    
+    ltc_val = les_stationary_Cts[ltc]
+
+    for amp in amps:
+        # fixed bottom
+        ax.hlines(y = ltc_val, xmin = 0, xmax = 1, label = "Fixed Bottom $C_T$", color = "k", linestyle = "--")
+        # LES
+        df_amp_les = df_both_les_sub[df_both_les_sub["Amplitude"] == amp]
+        if not df_amp_les.empty:
+            ax.scatter(
+                df_amp_les["Phase_Rounded"],
+                df_amp_les["Ct_Turb"],
+                color=color_map[amp],
+                alpha=0.7,
+                zorder = 2
+            )
+
+g.set_axis_labels("Phase $\phi$", "$C_T$", size=12)
+g.set_titles(col_template=r"$C_T'$ = {col_name}", row_template="$A_\phi = {row_name} ^\circ$", size=14)
+for ax in g.axes.flatten():
+    ax.tick_params(axis='x', labelsize=11)
+    ax.tick_params(axis='y', labelsize=11)
+
+# --- Create two-part legend ---
+import matplotlib.lines as mlines
+
+# 1) Colors for amplitudes
+amp_handles = [
+    mlines.Line2D([], [], color=color_map[amp], marker='o', linestyle='None', markersize=8)
+    for amp in amps
+]
+amp_labels = [f"$A_S = {amp:.1f}$" for amp in amps]
+
+# 2) Shapes/linestyles for datasets
+dataset_handles = (
+    [mlines.Line2D([], [], color='k',  markersize=8)
+    for ds in ["LES",]] +
+    [mlines.Line2D([], [], color='k', linestyle='--', markersize=8)]
+)
+
+dataset_labels = ["LES", "Fixed Bottom $C_T$"]
+
+
+# Add both legends
+leg1 = g.fig.legend(amp_handles, amp_labels, loc="upper center",
+                    ncol=3, frameon=False, fontsize=12, title_fontsize=12)
+
+leg2 = g.fig.legend(dataset_handles, dataset_labels, loc="upper center",
+                    ncol=len(dataset_handles), frameon=False, fontsize=12, title_fontsize=12,
+                    bbox_to_anchor=(0.5, 0.96))
+
+
+# Make sure both are visible
+g.fig.add_artist(leg1)
+
+plt.tight_layout(rect=[0, 0, 1, 0.88])
+plt.show()
 
 # %%
