@@ -28,9 +28,11 @@ def get_min_surge(theta0, f):
     vx = np.max(np.abs(theta_dot * z))
     return vx
 
-def get_all_possible_surge(theta0, f, min_surge, all_surge):
-    extra_surge = all_surge[all_surge > min_surge]
-    surge_vals = np.append(extra_surge, min_surge)
+def get_all_possible_surge(theta0, f, min_surge, all_surge, include_min):
+    all_surge = np.asarray(all_surge)
+    surge_vals = all_surge[all_surge > min_surge]
+    if include_min:
+        surge_vals = np.append(surge_vals, min_surge)
     surge_vals = np.sort(surge_vals)
     return surge_vals
 
@@ -69,41 +71,59 @@ single_inputs = dict(
         problem_name = "AD_coriolis_shear",
         job_name = "ct_effects",
         # if not provided, default_inputs will be used
-        n_hrs = 3,
-        queue = "skx"
+        n_hrs = 2,
+        queue = "spr"
     )
 )
 
 cT = [1.33, 2.0]
-
-pitch_amps = [8, 12, 16]
 freqs = np.array([0.4, 0.6, 0.8])
+pitch_amps = [8, 12, 16]
 surge_amps = np.array([0.2, 0.4, 0.6])
 
-surge_min_cases = []
-for pa in pitch_amps:
-    for sf in freqs:
-        # get x-velocity
-        vx = get_min_surge(pa, sf)
-        surge_min_cases.append((pa, sf, vx))
+def get_cases(freqs, surge_amps, pitch_amps, include_min = True):
+    surge_min_cases = []
+    for pa in pitch_amps:
+        for sf in freqs:
+            # get x-velocity
+            vx = get_min_surge(pa, sf)
+            surge_min_cases.append((pa, sf, vx))
 
-sf_vals = []
-sa_vals = []
-pa_vals = []
-for (pa, sf, sa_min) in surge_min_cases:
-    sa_all = get_all_possible_surge(pa, sf, sa_min, surge_amps)
-    for sa in sa_all:
-        sf_vals.append(sf)
-        sa_vals.append(sa)
-        pa_vals.append(pa)
+    sf_vals = []
+    sa_vals = []
+    pa_vals = []
+    for (pa, sf, sa_min) in surge_min_cases:
+        sa_all = get_all_possible_surge(pa, sf, sa_min, surge_amps, include_min)
+        for sa in sa_all:
+            sf_vals.append(sf)
+            sa_vals.append(sa)
+            pa_vals.append(pa)
+    return sf_vals, sa_vals, pa_vals
 
+# ititial cases for exploration
+sf_vals, sa_vals, pa_vals = get_cases(freqs, surge_amps, pitch_amps)
 movement_iter = itertools.zip_longest(sf_vals, sa_vals, pa_vals)
 dt = [ju.find_min_dt(1.0, nx, ny, nz, 1.0, single_inputs, v = 0.0, w = 0.0)] # have timestep based on sf = 1.0
 filterWidth = [ju.find_filter_width(single_inputs, nx = nx, ny = ny, nz = nz, factor = 2.5)]
 inital_exploration_iter = itertools.product(cT, movement_iter, dt, filterWidth)
 
+#add on higher frequency
+f1_sf_vals, f1_sa_vals, f1_pa_vals = get_cases([1.0], surge_amps, pitch_amps)
+f1_movement_iter = itertools.zip_longest(f1_sf_vals, f1_sa_vals, f1_pa_vals)
+f1_iter = itertools.product(cT, f1_movement_iter, dt, filterWidth)
+
+# add on pitch amplitude = 4
+p4_sf_vals, p4_sa_vals, p4_pa_vals = get_cases([0.4, 0.6, 0.8, 1.0], surge_amps, [4.0])
+p4_movement_iter = itertools.zip_longest(p4_sf_vals, p4_sa_vals, p4_pa_vals)
+p4_iter = itertools.product(cT, p4_movement_iter, dt, filterWidth)
+
+# add on higher amplitudes 0.8 and 1.0
+high_amp_sf_vals, high_amp_sa_vals, high_amp_pa_vals = get_cases([0.4, 0.6, 0.8, 1.0], [0.8, 1.0], [4.0, 8, 12, 16], include_min = False)
+high_amp_movement_iter = itertools.zip_longest(high_amp_sf_vals, high_amp_sa_vals, high_amp_pa_vals)
+high_amp_iter = itertools.product(cT, high_amp_movement_iter, dt, filterWidth)
+
 varied_header = ["cT", "surge_freq", "surge_amplitude", "pitch_amplitude", "dt", "filterWidth"]
-varied_inputs = itertools.chain.from_iterable([inital_exploration_iter])
+varied_inputs = itertools.chain.from_iterable([inital_exploration_iter, f1_iter, p4_iter, high_amp_iter])
 
 # for v in varied_inputs: 
 #     print(v)                                   
@@ -116,8 +136,8 @@ ju.make_batched_sbatch_files(
     ju.DATA_PATH + curr_script_name + "_Files",
     max_per_batch=12,
     output_glob="*.out",
-    avg_hours = 3,
+    avg_hours = 2,
     timeout_hours = 6,
-    sbatch_prefix="re_run_pitch_and_surge_batches",
+    sbatch_prefix="higher_amp_lower_pitch_cases",
     max_walltime_hours=12,
 )

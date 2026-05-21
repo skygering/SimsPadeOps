@@ -109,17 +109,20 @@ def _plot_instantaneous_field(save_folder, sim, *, tidx, field, dpi = 100, xlim 
     plt.close()
     return
 
-def plot_instantaneous_field(sim_folder, runid, tidx = 0, field = "u", xlim = [-5, 20], ylim =  [-5, 5],  zlim = 0, **kwargs):
-    run_folder = au.get_run_folder(sim_folder, runid)
+def plot_instantaneous_field(sim_folder, runid = 0, tidx = 0, field = "u", xlim = [-5, 20], ylim =  [-5, 5],  zlim = 0, vmin = None, vmax = None, run_folder = None, **kwargs):
+    if run_folder is None:
+        run_folder = au.get_run_folder(sim_folder, runid)
     sim = pio.BudgetIO(run_folder, padeops = True, runid = 0, normalize_origin="turbine")
     save_folder = run_folder
     if tidx == "all":
         tidx_list = sim.unique_tidx()
+        tidx_list = tidx_list[tidx_list > 15000]
         save_folder = os.path.join(run_folder, field + "_plots")
         Path(save_folder).mkdir(parents=True, exist_ok=True)
-        # get max/min values from last slice
-        last_field_slice = sim.slice(field_terms=[field], xlim = xlim, ylim = ylim, zlim = zlim, tidx = tidx_list[-1])[field]
-        vmin, vmax = np.min(last_field_slice), np.max(last_field_slice)
+        if vmin is None:
+             # get max/min values from last slice
+            last_field_slice = sim.slice(field_terms=[field], xlim = xlim, ylim = ylim, zlim = zlim, tidx = tidx_list[-1])[field]
+            vmin, vmax = np.min(last_field_slice), np.max(last_field_slice)
         for tidx in tidx_list:
             try:  # if simulation died early -> 
                 _plot_instantaneous_field(save_folder, sim, tidx = tidx, field = field, xlim = xlim, ylim = ylim, zlim = zlim, vmin = vmin, vmax = vmax, **kwargs)

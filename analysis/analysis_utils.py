@@ -146,19 +146,23 @@ def get_TI_inst(path, logfile, start_TIDX):
 def extract_sim_log_from_batches(sim_dir):
     """
     Extract per-simulation log from batch output files.
-
     Returns path to extracted log file or None if not found.
+    Prefers logs ending with end_token1 (success); falls back to end_token2 (error)
+    only if no successful run is found across all batch logs.
     """
     sim_dir = Path(sim_dir)
     sim_name = sim_dir.name
     parent = sim_dir.parent
-
-    batch_logs = sorted(parent.glob("run_batch_*.o*"))
+    batch_logs = sorted(parent.glob("*.o[0-9]*"))
     if not batch_logs:
         return None
 
     start_token = f"Running {sim_name}"
-    end_token = f"Finished {sim_name}"
+    end_token1 = f"Finished {sim_name}"
+    end_token2 = f"ERROR: {sim_name}"
+
+    backup_extracted = None
+    backup_source = None
 
     for batch_log in batch_logs:
         with batch_log.open("r", errors="ignore") as f:
@@ -166,25 +170,44 @@ def extract_sim_log_from_batches(sim_dir):
 
         inside = False
         extracted = []
+        found_end = None
 
         for line in lines:
             if start_token in line:
                 inside = True
-                extracted.append(line)
+                extracted = [line]  # Reset in case of multiple runs in same file
+                found_end = None
                 continue
             if inside:
                 extracted.append(line)
-                if end_token in line:
+                if end_token1 in line:
+                    found_end = "success"
+                    break
+                elif end_token2 in line:
+                    found_end = "error"
                     break
 
-        if extracted:
+        if found_end == "success" and extracted:
             out_file = sim_dir / f"{sim_name}_from_{batch_log.name}"
             with out_file.open("w") as out:
                 out.write(f"# Extracted from batch log: {batch_log}\n")
                 out.write(f"# Simulation: {sim_name}\n\n")
                 out.writelines(extracted)
-
             return out_file
+
+        elif found_end == "error" and extracted and backup_extracted is None:
+            # Save the first error log as a backup, keep searching
+            backup_extracted = extracted
+            backup_source = batch_log
+
+    # No successful run found — fall back to the error log if we have one
+    if backup_extracted and backup_source:
+        out_file = sim_dir / f"{sim_name}_from_{backup_source.name}"
+        with out_file.open("w") as out:
+            out.write(f"# Extracted from batch log: {backup_source}\n")
+            out.write(f"# Simulation: {sim_name}\n\n")
+            out.writelines(backup_extracted)
+        return out_file
 
     return None
 
