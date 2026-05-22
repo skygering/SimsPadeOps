@@ -40,3 +40,6 @@ simulations/*
 analysis/spod_results/*
 
 */__pycache__
+
+*.png
+*.csv
