@@ -11,6 +11,11 @@ import json
 import math
 import os
 from pathlib import Path
+import itertools
+import re
+import textwrap
+import math
+
 
 # paths to folders
 BASE = Path(__file__).parent.parent
@@ -120,12 +125,12 @@ def write_turb(new_inputs, curr_inputs, template_path, out_turb_path, quiet, n_t
         print(f"\tDone writing ActuatorDisk_{n_turbs:04d}_input.inp file")
     return
 
-def write_run(new_inputs, curr_inputs, template_path, out_path, quiet, n_nodes, node_cap, tasks_per_node):
+def write_run(new_inputs, curr_inputs, template_path, out_path, quiet, n_nodes, node_cap, tasks_per_node, task_cap):
     update_inputs(new_inputs, curr_inputs)
     curr_inputs["inputdir"] = str(out_path)  # add the output path for input files for template
     curr_inputs["n_hrs"] = int(curr_inputs["n_hrs"])
     curr_inputs["n_nodes"] = int(max(min(n_nodes, node_cap), 1))
-    curr_inputs["tasks"] = tasks_per_node
+    curr_inputs["tasks"] = int(max(min(tasks_per_node, task_cap), 1))
     curr_inputs["job_path"] = out_path.joinpath(curr_inputs["job_name"])
     fill_template(curr_inputs, template_path, out_path.joinpath(curr_inputs["run_file_name"]))
     if not quiet:
@@ -168,7 +173,7 @@ def write_interaction(new_inputs, curr_inputs, template_path, out_path, quiet):
 
 def write_padeops_files(new_inputs, *, default_input,
     sim_template, run_template, turb_template = None, hit_template = None, interaction_template = None,
-    n_turbs = 1, quiet = False, node_cap = 128
+    n_turbs = 1, quiet = False, node_cap = 128, task_cap = 112,
 ):
     # load default parameters
     with Path(default_input).open(mode = 'r') as file:
@@ -201,7 +206,7 @@ def write_padeops_files(new_inputs, *, default_input,
     new_inputs["run"]["inputfile"] = run_inputfile
     queue = new_inputs["run"]["queue"] if "queue" in new_inputs["run"] else curr_inputs["run"]["queue"]
     nnodes, tasks_per_node = get_nnodes(curr_inputs["sim"], queue)
-    write_run(new_inputs["run"], curr_inputs["run"], Path(run_template), inputdir, quiet, nnodes, node_cap, tasks_per_node)
+    write_run(new_inputs["run"], curr_inputs["run"], Path(run_template), inputdir, quiet, nnodes, node_cap, tasks_per_node, task_cap)
     return
 
 def _prep_padeops_suite_inputs(varied_inputs, varied_header, nested, default_input):
@@ -282,6 +287,160 @@ def write_padeops_suite(single_inputs, varied_inputs, *, default_input, varied_h
             writer = csv.writer(csv_key)
             writer.writerow((id,) + input_vals)
     return
+
+def make_batched_sbatch_files(
+    base_dir,
+    timeout_hours=3,
+    max_walltime_hours=12,
+    max_per_batch=12,
+    output_glob="*.out",
+    sbatch_prefix="run_batch",
+    avg_hours=None,
+):
+    """
+    Create grouped sbatch scripts with batch size dynamically computed
+    from timeout_hours and max_walltime_hours.
+
+    Parameters
+    ----------
+    base_dir : str or Path
+        Directory containing Sim_* subdirectories.
+    avg_hours: int or float
+        Average expected runtime per simulation.
+    timeout_hours : int or float
+        Maximum expected runtime per simulation.
+    max_walltime_hours : int
+        Maximum walltime per batch.
+    max_per_batch : int
+        Optional cap on number of simulations per batch.
+    output_glob : str
+        Pattern to detect completed simulations.
+    sbatch_prefix : str
+        Prefix for generated sbatch files.
+    """
+    base_dir = Path(base_dir).resolve()
+    sims = sorted(p for p in base_dir.glob("Sim_*") if p.is_dir())
+
+    if avg_hours is None:
+        avg_hours = timeout_hours
+        
+
+    # Filter simulations without output
+    sims_to_run = [
+        s for s in sims
+        if not any(s.glob(output_glob))
+    ]
+
+    if not sims_to_run:
+        print("No simulations need to be run.")
+        return
+
+    print(f"Found {len(sims_to_run)} simulations without output.")
+
+    # ---------------------------
+    # Compute batch size dynamically
+    # ---------------------------
+    dynamic_batch_size = min(max_per_batch, math.floor(max_walltime_hours / avg_hours))
+    if dynamic_batch_size < 1:
+        raise ValueError("timeout_hours > max_walltime_hours — cannot fit even one sim!")
+
+    print(f"Dynamic batch size: {dynamic_batch_size} simulations per batch")
+
+    # Helper: chunk list
+    def chunked(iterable, n):
+        it = iter(iterable)
+        while True:
+            chunk = list(itertools.islice(it, n))
+            if not chunk:
+                break
+            yield chunk
+
+    # Loop over batches
+    for batch_idx, batch in enumerate(chunked(sims_to_run, dynamic_batch_size), start=1):
+        sbatch_file = base_dir / f"{sbatch_prefix}_{batch_idx:02d}.sbatch"
+        batch_name = f"{sbatch_prefix}_{batch_idx:02d}"
+        batch_size = len(batch)
+        walltime_hours = min(avg_hours * batch_size, max_walltime_hours)
+        walltime_str = f"{int(walltime_hours)}:00:00"
+
+        # -----------------------------
+        # Extract header
+        # -----------------------------
+        header_source_sim = batch[0]
+        run_scripts = (
+            list(header_source_sim.glob("*.sbatch")) +
+            list(header_source_sim.glob("*.sh"))
+        )
+        if not run_scripts:
+            raise FileNotFoundError(
+                f"No run script found in {header_source_sim}"
+            )
+
+        header_lines = []
+        with run_scripts[0].open() as f:
+            for line in f:
+                if re.match(r"\s*ibrun\b", line):
+                    break
+                if line.lstrip().startswith("#SBATCH -t"):
+                    # Extract comment after first '#' (if any)
+                    parts = line.split("#", 1)
+                    comment = ""
+                    if len(parts) == 2:
+                        # Keep only the descriptive part, remove any 'SBATCH -t ...'
+                        comment_text = parts[1].strip()
+                        # Remove old SBATCH -t time if it exists
+                        comment_text = re.sub(r'SBATCH\s*-t\s*\d+:\d+:\d+', '', comment_text)
+                        comment_text = comment_text.strip()
+                        if comment_text:
+                            comment = comment_text
+                    # Build new line
+                    new_line = f"#SBATCH -t {walltime_str}"
+                    if comment:
+                        new_line += f"         # {comment}"
+                    header_lines.append(new_line)
+                # Replace job name
+                elif line.lstrip().startswith("#SBATCH -J"):
+                    header_lines.append(f"#SBATCH -J {batch_name}")
+                # Replace output file
+                elif line.lstrip().startswith("#SBATCH -o"):
+                    header_lines.append(f"#SBATCH -o {base_dir}/{batch_name}.o%j")
+                elif line.lstrip().startswith("#SBATCH -e"):
+                    header_lines.append(f"#SBATCH -e {base_dir}/{batch_name}.e%j")
+                else:
+                    header_lines.append(line.rstrip())
+
+        # -----------------------------
+        # Write sbatch file
+        # -----------------------------
+        with sbatch_file.open("w") as f:
+            f.write("\n".join(header_lines))
+            f.write("\n\n")
+            f.write(f'echo "Starting batch {batch_idx} at $(date)"\n')
+
+            for sim in batch:
+                f.write(textwrap.dedent(f"""
+                    echo "--------------------------------------"
+                    echo "Running {sim.name} at $(date)"
+
+                    if ls "{sim}"/{output_glob} &>/dev/null; then
+                        echo "Output already exists for {sim.name}, skipping."
+                        continue
+                    fi
+
+                    timeout {timeout_hours}h ibrun ./AD_coriolis_shear "{sim}/sim_inputs.dat"
+                    status=$?
+
+                    if [[ $status -ne 0 ]]; then
+                        echo "ERROR: {sim.name} failed or timed out (exit $status)"
+                        exit 1
+                    fi
+
+                    echo "Finished {sim.name} at $(date)"
+                """))
+
+            f.write(f'\necho "Batch {batch_idx} complete at $(date)"\n')
+
+        print(f"Wrote {sbatch_file}  (batch_size={batch_size}, walltime={walltime_str})")
 
 ### Functions from Kirby I don't need yet! ###
 

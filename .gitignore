@@ -41,5 +41,9 @@ analysis/spod_results/*
 
 */__pycache__
 
+# ipynb files since they are synced with jupytext
+*.ipynb
+
 *.png
 *.csv
+
