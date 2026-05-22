@@ -1,5 +1,5 @@
-import analysis_utils as au
-import quick_metadata_plots as mplts
+import analysis.lib.analysis_utils as au
+import analysis.lib.quick_metadata_plots as mplts
 from pathlib import Path
 import os
 import padeopsIO as pio

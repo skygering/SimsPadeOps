@@ -14,8 +14,8 @@
 
 # %%
 import os
-import analysis_utils as au
-import quick_metadata_plots as qmplt
+import analysis.lib.analysis_utils as au
+import analysis.lib.quick_metadata_plots as qmplt
 import padeopsIO as pio
 import matplotlib.pyplot as plt
 import numpy as np

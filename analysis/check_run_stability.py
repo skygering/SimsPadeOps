@@ -17,11 +17,11 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-import analysis_utils as au
+import analysis.lib.analysis_utils as au
 import matplotlib.pyplot as plt
 import os
 from pathlib import Path
-import quick_metadata_plots as mplts
+import analysis.lib.quick_metadata_plots as mplts
 from scipy.stats import describe
 import padeopsIO as pio
 import math

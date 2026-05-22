@@ -1,8 +1,8 @@
-import analysis_utils as au
+import analysis.lib.analysis_utils as au
 import matplotlib.pyplot as plt
 import os
 from pathlib import Path
-import quick_metadata_plots as mplts
+import analysis.lib.quick_metadata_plots as mplts
 
 data_path = Path(au.DATA_PATH)
 sim_folder = os.path.join(au.DATA_PATH, "F_0005_X_SU_PI_Files")

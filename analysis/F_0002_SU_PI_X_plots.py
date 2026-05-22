@@ -1,5 +1,5 @@
-import analysis_utils as au
-import quick_metadata_plots as mplts
+import analysis.lib.analysis_utils as au
+import analysis.lib.quick_metadata_plots as mplts
 from pathlib import Path
 import os
 import math
@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from scipy.signal import find_peaks
 import numpy as np
 import pyGCS as pg
-import quick_metadata_plots as mplts
+import analysis.lib.quick_metadata_plots as mplts
 
 data_path = Path(au.DATA_PATH)
 sim_folder_1 = os.path.join(au.DATA_PATH, "F_0000_SU_X_Files")
