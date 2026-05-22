@@ -6,7 +6,7 @@ ny                            = {{ "%d"|format(ny|int) }}           ! Number of 
 nz                            = {{ "%d"|format(nz|int) }}           ! Number of points in Z
 tstop                         = {{ "%.3f"|format(tstop|float)}}d0   ! Physical time to stop the simulation
 CFL                           = {{ "%.3f"|format(CFL|float)}}d0     ! CFL criterion for calculating the time step (Set to negative to disable)
-dt                            = {{ "%.3f"|format(dt|float)}}d0      ! Fixed time step value (only used if CFL is set to negative)
+dt                            = {{ "%.9f"|format(dt|float)}}d0      ! Fixed time step value (only used if CFL is set to negative)
 prow                          = 0                                   ! Number of rows in 2D processor decomposition (set 0 for auto-tuning)
 pcol                          = 0                                   ! Number of rows in 2D processor decomposition (set 0 for auto-tuning)
 useRestartFile                = .FALSE.                             ! Set to false if it's a fresh simulation 
@@ -163,6 +163,9 @@ vInflow                       = 0.d0           ! Veer strength dalpha/dz = vInfl
 InflowProfileAmplit           = 0.d0           ! Controls amplitude in Type 1, 2
 InflowProfileThick            = 0.d0           ! with uInflow (vInflow) controls strength of shear (veer) 
 InflowProfileType             = 0              ! Inflow profile; 0: uniform, 1: MFH shear, 2: MFH shear + veer, 5: new shear 6: new veer, 7: shear + veer
-amplit                        = {{ "%0.8f"|format(inflow_amplit|float) }}d0        ! Forcing amplitude target, as a fraction of G
-freq                          = {{ "%0.8f"|format(inflow_freq|float) }}d0          ! Forcing frequency (non-dimensionalized)
+{# 
+InflowSurgeAmplit             = {{ "%0.8f"|format(inflow_amplit|float) }}d0        ! Forcing amplitude target, as a fraction of G
+InflowSurgeFreq               = {{ "%0.8f"|format(inflow_freq|float) }}d0          ! Forcing frequency (non-dimensionalized)
+#}
+/
 /

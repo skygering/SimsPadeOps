@@ -11,9 +11,6 @@
 #SBATCH -A TG-ATM170028              # Allocation details
 #SBATCH --exclude=c476-092
 
-export FI_PROVIDER=psm2
-export I_MPI_EXTRA_FILESYSTEM="on"
-
 # Change directory to go to your bin
 cd $WORK/PadeOps/{{ build_folder }}/problems/{{ problem_dir }}
 date

@@ -45,7 +45,7 @@ single_inputs = dict(
         job_name = "ct_effects",
         # if not provided, default_inputs will be used
         n_hrs = 3,
-        queue = "skx"
+        queue = "spr",
     )
 )
 
@@ -87,27 +87,50 @@ varied_inputs_more_CT = itertools.product(cT, movement_iter, dt, filterWidth)
 
 # This is where I am running higher frequencies and amplitudes with smaller timesteps
 cT = [1.33, 1.66, 2.00, 2.33]
-small_sf = [1.0, 1.2]
-small_sa = [1.0, 1.2]
-large_surging_iter = itertools.product(small_sf, small_sa, [0.0])
+large_sf = [1.0, 1.2]
+large_sa = [1.0, 1.2]
+large_surging_iter = itertools.product(large_sf, large_sa, [0.0])
 varied_inputs_large = itertools.product(cT, large_surging_iter, [t / 2 for t in dt], filterWidth)
 
-varied_header = ["cT", "surge_freq", "surge_amplitude", "pitch_amplitude", "dt", "filterWidth"]
-varied_inputs = itertools.chain.from_iterable([varied_inputs_normal, varied_inputs_small, zero_movement, varied_inputs_more_CT, varied_inputs_large])
+# I need to fill in the grid with these extra values - start with CT' = 1.33 to get a starting idea
+cT = [1.33]
+all_amp_large_surging_iter = itertools.product(sf[:-1], large_sa, [0.0])
+varied_inputs_all_amp_large_surging_iter = itertools.product(cT, all_amp_large_surging_iter, [t / 2 for t in dt], filterWidth)
 
-# for v in varied_inputs: 
-#     print(v)                                   
+all_freq_large_surging_iter = itertools.product(large_sf, sa[:-1], [0.0])
+varied_inputs_all_freq_large_surging_iter = itertools.product(cT, all_freq_large_surging_iter, [t / 2 for t in dt], filterWidth)
+
+# I need to fill in the grid with these extra values - include other CT' values now
+cT = [1.66, 2.00, 2.33]
+all_amp_large_surging_iter_more_ctp = itertools.product(sf[:-1], large_sa, [0.0])
+varied_inputs_all_amp_large_surging_iter_more_ctp = itertools.product(cT, all_amp_large_surging_iter_more_ctp, [t / 2 for t in dt], filterWidth)
+
+all_freq_large_surging_iter_more_ctp = itertools.product(large_sf, sa[:-1], [0.0])
+varied_inputs_all_freq_large_surging_iter_more_ct = itertools.product(cT, all_freq_large_surging_iter_more_ctp, [t / 2 for t in dt], filterWidth)
+
+# added in non-moving cases for all CT' values
+cT = [1.33, 1.66, 2.00, 2.33]
+varied_inputs_stationary = itertools.product(cT, [0.0], [0.0], [0.0], dt, filterWidth)
+
+
+varied_header = ["cT", "surge_freq", "surge_amplitude", "pitch_amplitude", "dt", "filterWidth"]
+varied_inputs = itertools.chain.from_iterable([varied_inputs_normal, varied_inputs_small, zero_movement, varied_inputs_more_CT, varied_inputs_large,
+                                               varied_inputs_all_amp_large_surging_iter, varied_inputs_all_freq_large_surging_iter,
+                                               varied_inputs_all_amp_large_surging_iter_more_ctp, varied_inputs_all_freq_large_surging_iter_more_ct,
+                                               varied_inputs_stationary])
+for v in varied_inputs: 
+    print(v)                                   
 
 # write needed simulation files
-ju.write_padeops_suite(single_inputs, varied_inputs, varied_header = varied_header, default_input = default_inputs,
-    sim_template = sim_template, run_template = run_template, turb_template = turb_template, node_cap = 8)
+# ju.write_padeops_suite(single_inputs, varied_inputs, varied_header = varied_header, default_input = default_inputs,
+#     sim_template = sim_template, run_template = run_template, turb_template = turb_template, node_cap = 8)
 
-ju.make_batched_sbatch_files(
-    ju.DATA_PATH + curr_script_name + "_Files",
-    max_per_batch=12,
-    output_glob="*.out",
-    avg_hours = 4,
-    timeout_hours = 6,
-    sbatch_prefix="re_run_high_batch",
-    max_walltime_hours=12,
-)
+# ju.make_batched_sbatch_files(
+#     ju.DATA_PATH + curr_script_name + "_Files",
+#     max_per_batch=12,
+#     output_glob="*.out",
+#     avg_hours = 1.5,
+#     timeout_hours = 4,
+#     sbatch_prefix="stationary_batch",
+#     max_walltime_hours=6,
+# )
