@@ -296,6 +296,8 @@ def make_batched_sbatch_files(
     output_glob="*.out",
     sbatch_prefix="run_batch",
     avg_hours=None,
+    min_sim = None,
+    max_sim = None,
 ):
     """
     Create grouped sbatch scripts with batch size dynamically computed
@@ -330,6 +332,17 @@ def make_batched_sbatch_files(
         s for s in sims
         if not any(s.glob(output_glob))
     ]
+    if min_sim is not None:
+        sims_to_run = [
+            s for s in sims_to_run
+            if min_sim <= int(re.search(r"Sim_(\d+)", s.name).group(1))
+        ]
+    if max_sim is not None:
+        sims_to_run = [
+            s for s in sims_to_run
+            if max_sim >= int(re.search(r"Sim_(\d+)", s.name).group(1))
+        ]
+
 
     if not sims_to_run:
         print("No simulations need to be run.")
@@ -424,7 +437,6 @@ def make_batched_sbatch_files(
 
                     if ls "{sim}"/{output_glob} &>/dev/null; then
                         echo "Output already exists for {sim.name}, skipping."
-                        continue
                     fi
 
                     timeout {timeout_hours}h ibrun ./AD_coriolis_shear "{sim}/sim_inputs.dat"
