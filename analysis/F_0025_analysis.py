@@ -96,7 +96,7 @@ def phase_average_periods(df):
 uinf = 1
 rho = 1
 data_path = Path(au.DATA_PATH)
-sim_all_folder = os.path.join(au.DATA_PATH, "F_0025_SU_Files")
+sim_all_folder = os.path.join(au.DATA_PATH, "data/F_0025_SU_Files")
 all_data_fn = os.path.join(sim_all_folder, 'collected_runs_all.csv')
 
 all_df = []
