@@ -9,7 +9,7 @@ yaw           =   {{ "%0.8f"|format(yaw|float) }}d0
 tilt          =   {{ "%0.8f"|format(tilt|float) }}d0
 filterWidth   =   {{ "%0.8f"|format(filterWidth|float) }}d0
 useCorrection = .{{ useCorrection|upper }}.  ! Shapiro correction (used only when useCTprime=.true.)
-{%- if use_quals_style == true or use_quals_style|string|lower == 'true' %}
+{%- if use_quals_style == false or use_quals_style|string|lower == 'false' %}
 useCTprime    = .{{ useCTprime|string|upper }}.  ! T: CT' mode, F: CT mode
 {%- endif %}
 /

@@ -11,7 +11,7 @@ import glob
 from pathlib import Path
 import analysis.lib.quick_metadata_plots as mplts
 
-DATA_PATH = os.environ['SCRATCH'] + "/Data/"
+DATA_PATH = os.environ['SCRATCH'] + "/DataPadeOps/"
 
 def arg_parser(arg_list = ["write_dir", "filename"]):
     parser = argparse.ArgumentParser()
@@ -142,6 +142,133 @@ def get_TI_fact(path, logfile, start_TIDX):
 def get_TI_inst(path, logfile, start_TIDX):
     log_file_dict = pio.query_logfile(os.path.join(path, logfile), search_terms=["TI_inst"], crop_equal = False)
     return np.average(log_file_dict["TI_inst"][start_TIDX:])
+
+def load_simulation_timeseries(run_folder, id_str, freq, spinup_time=75):
+    sim = pio.BudgetIO(run_folder, padeops=True, runid=0, normalize_origin="turbine")
+
+    power = sim.read_turb_power("all", turb=1)
+    uvel = sim.read_turb_uvel("all", turb=1)
+
+    n_dumped = min(len(power), len(uvel))
+    power, uvel = power[:n_dumped], uvel[:n_dumped]
+
+    if n_dumped == 0:
+        raise RuntimeError("No turbine data found")
+
+    # -----------------------------
+    # locate one or more log files
+    # -----------------------------
+    log_files = sorted(glob.glob(f"*{id_str}*.o[0-9]*", root_dir=run_folder))
+
+    if not log_files:
+        extracted = extract_sim_log_from_batches(run_folder)
+        if extracted:
+            log_files = [extracted.name]
+
+    if not log_files:
+        raise RuntimeError("Could not locate any log file")
+
+    log_paths = [os.path.join(run_folder, lf) for lf in log_files]
+
+    # -----------------------------
+    # parse + merge logs
+    # -----------------------------
+    if len(log_paths) == 1:
+        log = _parse_one_log(log_paths[0])["log"]
+    else:
+        infos = [_parse_one_log(p) for p in log_paths]
+        log = _concat_logs_prefer_last(infos)  # restart overlaps keep second run values
+
+    # -----------------------------
+    # align with turbine outputs
+    # -----------------------------
+    time = np.asarray(log["Time"])[:n_dumped]
+    tidx_raw = np.asarray(log["TIDX"])
+    tidx = np.insert(tidx_raw, 0, 0).astype(int)[:n_dumped]
+
+    mask = time > spinup_time
+    time, tidx = time[mask], tidx[mask]
+
+    # tilt (optional)
+    tilt_deg = np.asarray(log["tilt"])
+    if tilt_deg.size == 0:
+        tilt = np.zeros_like(time)
+    else:
+        tilt = np.deg2rad(tilt_deg[:n_dumped][mask])
+
+    # phase (optional)
+    phase_arr = np.asarray(log["phase"])
+    if phase_arr.size == 0:
+        if freq > 0 and len(time) > 1:
+            T = 1.0 / freq
+            dt = time[1] - time[0]
+            dp = dt / T
+            start_phase = np.mod(time[0] / T, 1.0)
+            phase = np.mod(start_phase + np.arange(len(time)) * dp, 1.0)
+        else:
+            phase = np.zeros_like(time)
+    else:
+        phase = phase_arr[:n_dumped][mask]
+
+    data = {
+        "Time": time,
+        "TIDX": tidx,
+        "Tilt": tilt,
+        "UTurb": np.asarray(log["uturb"])[:n_dumped][mask],
+        "DeltaX": np.asarray(log["delta"])[:n_dumped][mask],
+        "Phase": phase,
+        "Power": np.asarray(power)[mask],
+        "UDisk": np.asarray(uvel)[mask],
+    }
+    return data
+
+def _parse_one_log(path):
+    log = pio.query_logfile(
+        path,
+        search_terms=["tilt", "uturb", "Time", "TIDX", "delta", "phase"],
+        crop_equal=False,
+    )
+
+    for k in ["Time", "TIDX", "tilt", "uturb", "delta", "phase"]:
+        if k not in log:
+            log[k] = np.array([])
+
+    time = np.asarray(log["Time"])
+    tidx = np.asarray(log["TIDX"]).astype(int) if len(log["TIDX"]) else np.array([], dtype=int)
+
+    with open(path, "r", errors="ignore") as f:
+        txt = f.read(20000)
+    is_restart = "RESTART FILE USED" in txt
+
+    return {
+        "path": path,
+        "is_restart": is_restart,
+        "first_time": time[0] if time.size else np.inf,
+        "first_tidx": tidx[0] if tidx.size else np.iinfo(np.int64).max,
+        "log": log,
+    }
+
+def _concat_logs_prefer_last(log_infos):
+    # base run first, restart later
+    log_infos = sorted(log_infos, key=lambda d: (d["is_restart"], d["first_tidx"], d["first_time"]))
+
+    keys = ["Time", "TIDX", "tilt", "uturb", "delta", "phase"]
+    out = {
+        k: np.concatenate([np.asarray(info["log"][k]) for info in log_infos if np.asarray(info["log"][k]).size > 0])
+           if any(np.asarray(info["log"][k]).size > 0 for info in log_infos) else np.array([])
+        for k in keys
+    }
+
+    # de-dup by TIDX if available; keep LAST occurrence
+    key = out["TIDX"] if out["TIDX"].size else out["Time"]
+    if key.size:
+        rev = key[::-1]
+        _, rev_idx = np.unique(rev, return_index=True)   # first in reversed == last in original
+        keep = (key.size - 1 - rev_idx)
+        keep.sort()
+        out = {k: v[keep] if v.size else v for k, v in out.items()}
+
+    return out
 
 def extract_sim_log_from_batches(sim_dir):
     """

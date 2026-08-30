@@ -92,7 +92,7 @@ plt.savefig(os.path.join(sim_folder, 'pitching_coarse_varied_filter_check.png'))
 #     mplts.film_instantaneous_field(save_folder, video_name = video_name)
 
 # plot turbine tilt
-# pitching_log = "/scratch/10264/sgering/Data/F_0004_SU_PI_Files/Sim_0007/grid_resolution_test_sg_0007.o1628466"
+# pitching_log = "/scratch/10264/sgering/DataPadeOps/F_0004_SU_PI_Files/Sim_0007/grid_resolution_test_sg_0007.o1628466"
 # pitch_tilt = pio.query_logfile(pitching_log, search_terms = ["tilt"])["tilt"]
 # n = len(pitch_tilt)
 # pitch_tilt = pitch_tilt[round(n * 0.5):round(n * 0.6)]
