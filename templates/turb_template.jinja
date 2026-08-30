@@ -1,21 +1,53 @@
 &ACTUATOR_DISK
-xLoc         =   {{ "%0.8f"|format(xLoc|float) }}d0
-yLoc         =   {{ "%0.8f"|format(yLoc|float) }}d0
-zLoc         =   {{ "%0.8f"|format(zLoc|float) }}d0
-diam         =   1.0d0 
-cT           =   {{ "%0.8f"|format(cT|float) }}d0
+xLoc          =   {{ "%0.8f"|format(xLoc|float) }}d0
+yLoc          =   {{ "%0.8f"|format(yLoc|float) }}d0
+zLoc          =   {{ "%0.8f"|format(zLoc|float) }}d0
+diam          =   1.0d0
+cT            =   {{ "%0.8f"|format(cT|float) }}d0
 useDynamicYaw = .FALSE.
-yaw          =   {{ "%0.8f"|format(yaw|float) }}d0
-tilt         =   {{ "%0.8f"|format(tilt|float) }}d0
-filterWidth  =   {{ "%0.8f"|format(filterWidth|float) }}d0
-useCorrection = .{{ useCorrection|upper }}.     ! turns filtering on (Shapiro et al. (2019))
+yaw           =   {{ "%0.8f"|format(yaw|float) }}d0
+tilt          =   {{ "%0.8f"|format(tilt|float) }}d0
+filterWidth   =   {{ "%0.8f"|format(filterWidth|float) }}d0
+useCorrection = .{{ useCorrection|upper }}.  ! Shapiro correction (used only when useCTprime=.true.)
+{%- if use_quals_style == true or use_quals_style|string|lower == 'true' %}
+useCTprime    = .{{ useCTprime|string|upper }}.  ! T: CT' mode, F: CT mode
+{%- endif %}
+/
+/
 
-/
-/
 &DYNAMICTURBINE
-use_simple_periodic     = .true.
-surge_freq              = {{ "%0.8f"|format(surge_freq|float) }}d0
-surge_amplitude         = {{ "%0.8f"|format(surge_amplitude|float) }}d0
-pitch_amplitude         = {{ "%0.8f"|format(pitch_amplitude|float) }}d0
-verbose                 = .true.
-/ 
+{# master switch: set true to use old style behavior #}
+{%- set use_quals_style = use_quals_style|default(true) -%}
+
+{%- if use_quals_style == true or use_quals_style|string|lower == 'true' %}
+use_simple_periodic   = .true.
+surge_freq            = {{ "%0.8f"|format(surge_freq|default(0.0)|float) }}d0
+surge_amplitude       = {{ "%0.8f"|format(surge_amplitude|default(0.0)|float) }}d0
+pitch_amplitude       = {{ "%0.8f"|format(pitch_amplitude|default(0.0)|float) }}d0
+
+{%- else %}
+{%- set motion_ts = use_motion_timeseries|default(false) -%}
+{%- if motion_ts == true or motion_ts|string|lower == 'true' %}
+use_simple_periodic    = .false.
+use_motion_timeseries  = .true.
+motion_timeseries_file = '{{ motion_timeseries_file|default("") }}'
+{%- else %}
+use_simple_periodic   = .true.
+use_motion_timeseries = .false.
+surge_freq            = {{ "%0.8f"|format(surge_freq|default(0.0)|float) }}d0
+surge_amplitude       = {{ "%0.8f"|format(surge_amplitude|default(0.0)|float) }}d0
+pitch_amplitude       = {{ "%0.8f"|format(pitch_amplitude|default(0.0)|float) }}d0
+{%- endif %}
+
+{%- set ct_ts = use_cT_timeseries|default(false) -%}
+{%- if ct_ts == true or ct_ts|string|lower == 'true' %}
+use_cT_timeseries  = .true.
+cT_timeseries_file = '{{ cT_timeseries_file|default("") }}'
+{%- else %}
+use_cT_timeseries  = .false.
+{%- endif %}
+
+{%- endif %}
+
+verbose = .true.
+/
