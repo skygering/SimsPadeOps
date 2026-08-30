@@ -12,7 +12,7 @@ turb_template = ju.TEMPLATE_PATH.joinpath("turb_template.jinja")
 run_template = ju.TEMPLATE_PATH.joinpath("run_template.jinja")
 default_inputs = ju.DEFAULTS_PATH.joinpath("floating_defaults.json")
 
-df = pd.read_csv("/scratch/10264/sgering/SimsPadeOps/simulations/F_0025_SU.csv")
+df = pd.read_csv("/scratch/10264/sgering/SimsPadeOps/simulations/data/F_0025_SU.csv")
 CT_prime = df["CT_prime"]
 f, Av = df["f"], df["Av"]
 nx, ny, nz = df["nx"], df["ny"], df["nz"]

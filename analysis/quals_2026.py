@@ -1077,8 +1077,21 @@ def umm_les_contour_plot(
 
         # ---- labels ----
         ax.set_title(f"$C_T' = {ct}$", fontsize=TITLE_FONTSIZE)
-        ax.set_xlabel("Phase $\phi$", fontsize=LABEL_FONTSIZE)
-        ax.set_ylabel("$A_v$", fontsize=LABEL_FONTSIZE)
+
+        if x_key == "Surge_Amplitude":
+            ax.set_xlabel("$A_v$", fontsize=LABEL_FONTSIZE)
+        elif x_key == "Phase":
+            ax.set_xlabel("Phase $\phi$", fontsize=LABEL_FONTSIZE)
+        else:
+            print("x-axis label needs to be specified ")
+
+        if y_key == "Surge_Amplitude":
+            ax.set_ylabel("$A_v$", fontsize=LABEL_FONTSIZE)
+        elif y_key == "Frequency":
+            ax.set_ylabel("$f$", fontsize=LABEL_FONTSIZE)
+        else:
+            print("y-axis label needs to be specified")
+        
         ax.tick_params(labelsize=TICK_FONTSIZE)
 
         cf_last = cf
@@ -1214,8 +1227,21 @@ def umm_les_contour_plot_with_diff(
         ax.scatter(sub_high[x_key], sub_high[y_key], marker="x", color="r", zorder=3)
 
     ax.set_title(f"$\Delta C_T'$", fontsize=TITLE_FONTSIZE)
-    ax.set_xlabel("Phase $\phi$", fontsize=LABEL_FONTSIZE)
-    ax.set_ylabel("$A_v$", fontsize=LABEL_FONTSIZE)
+
+    if x_key == "Surge_Amplitude":
+         ax.set_xlabel("$A_v$", fontsize=LABEL_FONTSIZE)
+    elif x_key == "Phase":
+        ax.set_xlabel("Phase $\phi$", fontsize=LABEL_FONTSIZE)
+    else:
+        print("x-axis label needs to be specified ")
+
+    if y_key == "Surge_Amplitude":
+        ax.set_ylabel("$A_v$", fontsize=LABEL_FONTSIZE)
+    elif y_key == "Frequency":
+        ax.set_ylabel("$f$", fontsize=LABEL_FONTSIZE)
+    else:
+        print("y-axis label needs to be specified")
+        
     ax.tick_params(labelsize=TICK_FONTSIZE)
 
     cf_last = cf
@@ -1239,7 +1265,7 @@ def umm_les_contour_plot_with_diff(
 
 
 # %%
-final_surge_df = pd.read_csv("/Users/sky/src/HowlandLab/data/quals_data/data/surge_final_runs_interp.csv")
+final_surge_df = pd.read_csv("/Users/sky/src/HowlandLab/data/quals_data/surge_final_runs_interp.csv")
 final_surge_df = final_surge_df.rename(columns={"UDisk": "LES_UDisk", "Power": "LES_Power", "DeltaX": "XTurb"})
 
 # %%
@@ -1966,51 +1992,90 @@ g = sns.relplot(
 # # Mean, Min, and Max for each $C_T'$, $f^*$, and $A_S^*$
 
 # %%
+phase_stats
+
+# %%
 period_group_cols = ["CT_prime", "Surge_Amplitude", "Frequency"]
+vars_ = ["CP", "CT", "an_T", "an_G", "UDisk", "Power"]
 
-mean_cols = [
-    "LES_CP_mean", "LES_CT_mean", "LES_an_T_mean", "LES_an_G_mean", "LES_UDisk_mean", "LES_Power_mean",
-    "UMM_CP_mean", "UMM_CT_mean", "UMM_an_T_mean", "UMM_an_G_mean", "UMM_UDisk_mean", "UMM_Power_mean",
-]
-overall_stats = phase_stats.groupby(period_group_cols)[mean_cols].agg(["min", "max", "mean"]).reset_index()
+# Build aggregation dict with per-column control
+agg_spec = {}
 
-def clean_mean_column_name(col):
-    if isinstance(col, tuple):
-        # take only the first part up to _mean/_max/_min
-        base = col[0]
-        # remove trailing _mean if present
-        if base.endswith("_mean"):
-            base = base[:-5]  # remove '_mean'
-        # add the second part if not empty
-        if col[1]:
-            base = f"{base}_{col[1]}"
-        return base
-    else:
-        return col
-overall_stats.columns = [clean_mean_column_name(col) for col in overall_stats.columns]
+# LES + UMM: min, max, mean
+for prefix in ["LES", "UMM"]:
+    for v in vars_:
+        src = f"{prefix}_{v}_mean"
+        base = f"{prefix}_{v}"
+        agg_spec[f"{base}_min"] = (src, "min")
+        agg_spec[f"{base}_max"] = (src, "max")
+        agg_spec[f"{base}_mean"] = (src, "mean")
 
-for col in mean_cols:
-    if col.startswith("LES_"):
-        col = col[:-5]  # remove '_mean'
-        LES_col = col
-        UMM_col = LES_col.replace("LES","UMM")
-        base_name = LES_col.replace("LES_", "")
-        # get extreems
-        for extreme in ["_min", "_max"]:
-            LES_ext_col = LES_col + extreme
-            UMM_ext_col = UMM_col + extreme
-            diff_col = f"Diff_{base_name}{extreme}"
-            overall_stats[diff_col] = overall_stats[LES_ext_col] - overall_stats[UMM_ext_col]
-        # get means
-        diff_mean_col = f"Diff_{base_name}_mean"
-        overall_stats[diff_mean_col] = overall_stats[LES_col + "_mean"] - overall_stats[UMM_col + "_mean"]
+# Diff: mean only (this is mean over phases of phase-wise differences)
+for v in vars_:
+    src = f"Diff_{v}_mean"
+    agg_spec[f"Diff_{v}_mean"] = (src, "mean")
 
+overall_stats = (
+    phase_stats
+    .groupby(period_group_cols, as_index=False)
+    .agg(**agg_spec)
+)
+
+for v in vars_:
+    overall_stats[f"Diff_{v}_min"] = overall_stats[f"LES_{v}_min"] - overall_stats[f"UMM_{v}_min"]
+    overall_stats[f"Diff_{v}_max"] = overall_stats[f"LES_{v}_max"] - overall_stats[f"UMM_{v}_max"]
+
+# %%
+# period_group_cols = ["CT_prime", "Surge_Amplitude", "Frequency"]
+
+# mean_cols = [
+#     "LES_CP_mean", "LES_CT_mean", "LES_an_T_mean", "LES_an_G_mean", "LES_UDisk_mean", "LES_Power_mean",
+#     "UMM_CP_mean", "UMM_CT_mean", "UMM_an_T_mean", "UMM_an_G_mean", "UMM_UDisk_mean", "UMM_Power_mean",
+# ]
+
+# overall_stats = phase_stats.groupby(period_group_cols)[mean_cols].agg(["min", "max", "mean"]).reset_index()
+
+# def clean_mean_column_name(col):
+#     if isinstance(col, tuple):
+#         # take only the first part up to _mean/_max/_min
+#         base = col[0]
+#         # remove trailing _mean if present
+#         if base.endswith("_mean"):
+#             base = base[:-5]  # remove '_mean'
+#         # add the second part if not empty
+#         if col[1]:
+#             base = f"{base}_{col[1]}"
+#         return base
+#     else:
+#         return col
+# overall_stats.columns = [clean_mean_column_name(col) for col in overall_stats.columns]
+
+# for col in mean_cols:
+#     if col.startswith("LES_"):
+#         col = col[:-5]  # remove '_mean'
+#         LES_col = col
+#         UMM_col = LES_col.replace("LES","UMM")
+#         base_name = LES_col.replace("LES_", "")
+#         # get extreems
+#         for extreme in ["_min", "_max"]:
+#             LES_ext_col = LES_col + extreme
+#             UMM_ext_col = UMM_col + extreme
+#             diff_col = f"Diff_{base_name}{extreme}"
+#             overall_stats[diff_col] = overall_stats[LES_ext_col] - overall_stats[UMM_ext_col]
+#         # get means
+#         diff_mean_col = f"Diff_{base_name}_mean"
+#         overall_stats[diff_mean_col] = overall_stats[LES_col + "_mean"] - overall_stats[UMM_col + "_mean"]
+
+
+# %%
 # Continuous palette for hue (Frequency)
 palette = sns.color_palette("viridis_r", n_colors=overall_stats["Frequency"].nunique())
 
 # Map Frequency to color
 freq_colors = dict(zip(sorted(overall_stats["Frequency"].unique()), palette))
 
+# %%
+overall_stats.keys()
 
 # %%
 umm_les_contour_plot(
@@ -2695,5 +2760,99 @@ g.fig.tight_layout(rect=[0, 0, 1, 0.96])
 
 # %%
 np.max(np.abs(df_plot[(df_plot["Metric"] == "Mean") & (df_plot["Surge_Amplitude"] < 0.7)]["Percent_Diff"]))
+
+# %% [markdown]
+# ## Error LUTs
+#
+# At this point, we want to make look up tables for the different error metrics that we have created. 
+
+# %%
+overall_stats.keys()
+
+# %%
+phase_stats.keys()
+
+# %%
+from pathlib import Path
+import json
+
+output_dir = Path("saved_stats")
+output_dir.mkdir(exist_ok=True)
+
+# -----------------------------
+# overall_stats export
+# -----------------------------
+
+overall_lookup_cols = [
+    "CT_prime",
+    "Surge_Amplitude",
+    "Frequency",
+]
+
+overall_value_cols = [
+    "Diff_CP_min",
+    "Diff_CP_max",
+    "Diff_CP_mean",
+    "Diff_CT_min",
+    "Diff_CT_max",
+    "Diff_CT_mean",
+]
+
+overall_cols = overall_lookup_cols + overall_value_cols
+
+overall_stats_out = overall_stats.loc[:, overall_cols].copy()
+
+overall_stats_out.to_csv(
+    output_dir / "overall_stats_summary.csv",
+    index=False,
+)
+
+# Optional metadata file
+overall_metadata = {
+    "filename": "overall_stats_summary.csv",
+    "lookup_columns": overall_lookup_cols,
+    "value_columns": overall_value_cols,
+}
+
+with open(output_dir / "overall_stats_summary_metadata.json", "w") as f:
+    json.dump(overall_metadata, f, indent=4)
+
+
+# -----------------------------
+# phase_stats export
+# -----------------------------
+
+phase_lookup_cols = [
+    "Phase",
+    "CT_prime",
+    "Surge_Amplitude",
+    "Frequency",
+]
+
+phase_value_cols = [
+    "Diff_CP_mean",
+    "Diff_CP_std",
+    "Diff_CT_mean",
+    "Diff_CT_std",
+]
+
+phase_cols = phase_lookup_cols + phase_value_cols
+
+phase_stats_out = phase_stats.loc[:, phase_cols].copy()
+
+phase_stats_out.to_csv(
+    output_dir / "phase_stats_summary.csv",
+    index=False,
+)
+
+# Optional metadata file
+phase_metadata = {
+    "filename": "phase_stats_summary.csv",
+    "lookup_columns": phase_lookup_cols,
+    "value_columns": phase_value_cols,
+}
+
+with open(output_dir / "phase_stats_summary_metadata.json", "w") as f:
+    json.dump(phase_metadata, f, indent=4)
 
 # %%

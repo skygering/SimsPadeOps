@@ -46,3 +46,6 @@ analysis/spod_results/*
 
 *.png
 *.csv
+
+analysis/data/*
+analysis/saved_stats/*
