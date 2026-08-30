@@ -7,15 +7,17 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # ============================================================
-# 4-run matrix for one-case F_0037:
+# 4-run matrix for one-case F_0038:
 # (1) sinusoidal surge + constant CT'
 # (2) timeseries surge + constant CT'
 # (3) sinusoidal surge + timeseries CT'
 # (4) timeseries surge + timeseries CT'
 #
 # Uses one OpenFAST-derived seed/case from:
-#   - F_0037_metadata.csv
-#   - F_0037_timeseries.csv
+#   - F_0038_metadata.csv
+#   - F_0038_timeseries.csv
+#
+# HWindSpeed,WaveHs,WaveTp = 10.0,5.0,8.0
 # ============================================================
 
 sim_template = ju.TEMPLATE_PATH.joinpath("sim_template.jinja")
@@ -24,8 +26,8 @@ run_template = ju.TEMPLATE_PATH.joinpath("run_template.jinja")
 default_inputs = ju.DEFAULTS_PATH.joinpath("floating_defaults.json")
 
 # ---- user files ----
-meta_file = Path("/scratch/10264/sgering/SimsPadeOps/simulations/F_0037_metadata.csv")
-ts_file = Path("/scratch/10264/sgering/SimsPadeOps/simulations/F_0037_timeseries.csv")
+meta_file = Path("/scratch/10264/sgering/SimsPadeOps/simulations/F_0038_metadata.csv")
+ts_file = Path("/scratch/10264/sgering/SimsPadeOps/simulations/F_0038_timeseries.csv")
 
 # base/domain reference
 domain_file = Path("/scratch/10264/sgering/SimsPadeOps/simulations/F_0029_SU.csv")
@@ -222,6 +224,7 @@ single_inputs = dict(
         surge_freq=float(v_f),                 # used if use_simple_periodic=True
         motion_timeseries_file=str(timeseries_surge_file),   # used if enabled
         cT_timeseries_file=str(timeseries_cT_ts_file),       # used if enabled
+        use_quals_style = False,
     ),
     run=dict(
         problem_dir="turbines",

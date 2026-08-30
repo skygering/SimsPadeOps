@@ -1,0 +1,2 @@
+case_name,HWindSpeed,WaveHs,WaveTp,t_analyze_start,WF_frange_low,WF_frange_high,vel_method,sg_window,sg_poly,welch_nperseg,welch_overlap_frac,CT_mean,CT_prime_mean,v_A,v_f,n_samples,non_dim
+DLC1.1_33_weis_job_058,10.0,5.0,8.0,400.0,0.03333333333333333,1.0,savgol,301,4,3000,0.5,0.7170858165580593,1.2745650406916218,0.05751200744442636,3.2,60000,True
