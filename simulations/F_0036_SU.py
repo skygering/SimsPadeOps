@@ -7,7 +7,7 @@ sim_template = ju.TEMPLATE_PATH.joinpath("sim_template.jinja")
 turb_template = ju.TEMPLATE_PATH.joinpath("turb_template.jinja")
 run_template = ju.TEMPLATE_PATH.joinpath("run_template.jinja")
 default_inputs = ju.DEFAULTS_PATH.joinpath("floating_defaults.json")
-df = pd.read_csv("/scratch/10264/sgering/SimsPadeOps/simulations/F_0029_SU_TEST.csv")
+df = pd.read_csv("/scratch/10264/sgering/SimsPadeOps/simulations/F_0029_SU.csv")
 
 # 1) Filter out rows where Av > 0.4  (keep Av <= 0.4)
 df = df[df["Av"] <= 0.4].copy()
@@ -63,42 +63,42 @@ varied_header = ["cT", "surge_amplitude", "surge_freq", "nx", "ny", "nz", "Lx", 
 #     print(v)                                   
 
 # # write needed simulation files
-ju.write_padeops_suite(single_inputs, varied_inputs, varied_header = varied_header, default_input = default_inputs,
-    sim_template = sim_template, run_template = run_template, turb_template = turb_template, node_cap = 8)
+# ju.write_padeops_suite(single_inputs, varied_inputs, varied_header = varied_header, default_input = default_inputs,
+#     sim_template = sim_template, run_template = run_template, turb_template = turb_template, node_cap = 8)
 
-# ju.make_batched_sbatch_files( # batch all sims that take 6 hours
-#     ju.DATA_PATH + curr_script_name + "_Files",
-#     max_per_batch=12,
-#     output_glob="*.out",
-#     avg_hours = 6,
-#     timeout_hours = 12,
-#     sbatch_prefix="surge_6_hrs",
-#     max_walltime_hours=18,
-#     min_sim = 8,
-#     max_sim = 21
-# )
+ju.make_batched_sbatch_files( # batch all sims that take 6 hours
+    ju.DATA_PATH + curr_script_name + "_Files",
+    max_per_batch=12,
+    output_glob="*.out",
+    avg_hours = 6,
+    timeout_hours = 12,
+    sbatch_prefix="re_run_surge_6_hrs",
+    max_walltime_hours=18,
+    min_sim = 4,
+    max_sim = 8
+)
 
-# ju.make_batched_sbatch_files( # batch all sims that take 5 hours
-#     ju.DATA_PATH + curr_script_name + "_Files",
-#     max_per_batch=12,
-#     output_glob="*.out",
-#     avg_hours = 5,
-#     timeout_hours = 10,
-#     sbatch_prefix="surge_5_hrs",
-#     max_walltime_hours=20,
-#     min_sim = 22,
-#     max_sim = 77
-# )
+ju.make_batched_sbatch_files( # batch all sims that take 5 hours
+    ju.DATA_PATH + curr_script_name + "_Files",
+    max_per_batch=12,
+    output_glob="*.out",
+    avg_hours = 5,
+    timeout_hours = 10,
+    sbatch_prefix="re_run_surge_5_hrs",
+    max_walltime_hours=20,
+    min_sim = 9,
+    max_sim = 28
+)
 
-# ju.make_batched_sbatch_files( # batch all sims that take 4 hours
-#     ju.DATA_PATH + curr_script_name + "_Files",
-#     max_per_batch=12,
-#     output_glob="*.out",
-#     avg_hours = 4,
-#     timeout_hours = 8,
-#     sbatch_prefix="surge_4_hrs",
-#     max_walltime_hours=20,
-#     min_sim = 78,
-#     max_sim = 91,
-# )
+ju.make_batched_sbatch_files( # batch all sims that take 4 hours
+    ju.DATA_PATH + curr_script_name + "_Files",
+    max_per_batch=12,
+    output_glob="*.out",
+    avg_hours = 4,
+    timeout_hours = 8,
+    sbatch_prefix="re_run_surge_4_hrs",
+    max_walltime_hours=20,
+    min_sim = 29,
+    max_sim = 34,
+)
 

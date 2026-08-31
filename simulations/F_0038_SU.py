@@ -97,7 +97,7 @@ data_duration = t_data[-1] - t_data[0]
 
 # total simulation time: spinup + measured duration
 tstop = spinup_time + data_duration
-n_hrs = int(np.ceil(tstop / 80 * 3) + 1)
+n_hrs = int(np.ceil(tstop / 80 * 3) + 4)
 
 # ============================================================
 # Align measured signals to local post-spinup clock

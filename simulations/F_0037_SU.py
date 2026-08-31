@@ -232,7 +232,7 @@ single_inputs = dict(
         job_name=f"{case_name}_2x2",
         build_folder="build_opti_phase",
         queue="spr",
-        n_hrs=int(n_hrs),
+        n_hrs=9,
     ),
 )
 

@@ -1,5 +1,5 @@
 import padeopsIO as pio
-import analysis.lib.analysis_utils as au
+import lib.analysis_utils as au
 # from pathlib import Path
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation

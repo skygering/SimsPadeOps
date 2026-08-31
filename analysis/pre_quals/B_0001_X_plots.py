@@ -16,13 +16,13 @@
 # # Vertification of UMM with Tilt
 
 # %%
-import analysis.lib.analysis_utils as au
+import lib.analysis_utils as au
 import matplotlib.pyplot as plt
 import numpy as np
 from pathlib import Path
 import os
-import analysis.lib.quick_metadata_plots as mplts
-import analysis.lib.analysis_utils as au
+import lib.quick_metadata_plots as mplts
+import lib.analysis_utils as au
 import padeopsIO as pio
 import pandas as pd
 import seaborn as sns

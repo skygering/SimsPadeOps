@@ -9,7 +9,8 @@ from scipy.signal import find_peaks
 import statistics
 import glob
 from pathlib import Path
-import analysis.lib.quick_metadata_plots as mplts
+import lib.quick_metadata_plots as mplts
+import pandas as pd
 
 DATA_PATH = os.environ['SCRATCH'] + "/DataPadeOps/"
 
@@ -337,6 +338,32 @@ def extract_sim_log_from_batches(sim_dir):
         return out_file
 
     return None
+
+def build_sim_dataframe(data, meta):
+    df = pd.DataFrame({
+        "id": meta["id"],
+        "CT_prime": meta["CT_prime"],
+        "Surge_Amplitude": meta["Surge_Amplitude"],
+        "Pitch_Amplitude": meta["Pitch_Amplitude"],
+        "Frequency": meta["Frequency"],
+        "nx": meta["nx"],
+        "ny": meta["ny"],
+        "nz": meta["nz"],
+        "Lx": meta["Lx"],
+        "Ly": meta["Ly"],
+        "Lz": meta["Lz"],
+        "dt": meta["dt"],
+        "filterWidth": meta["filterWidth"],
+        "useCorrection": meta["useCorrection"],
+        **data
+    })
+
+    # detect periods
+    phase = df["Phase"].values
+    period = np.zeros(len(phase), dtype=int)
+    period[1:] = np.cumsum(np.diff(phase) < 0)
+    df["Period"] = period
+    return df
 
 
 

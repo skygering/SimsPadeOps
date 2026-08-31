@@ -22,9 +22,9 @@ dpi = 300
 
 # %%
 import os
-import analysis.lib.analysis_utils as au
+import lib.analysis_utils as au
 import padeopsIO as pio
-import analysis.lib.quick_metadata_plots as mplts
+import lib.quick_metadata_plots as mplts
 
 # %%
 sim_21_all_folder = os.path.join(au.DATA_PATH, "F_0021_Files")

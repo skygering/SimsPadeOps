@@ -1,8 +1,8 @@
-import analysis.lib.analysis_utils as au
+import lib.analysis_utils as au
 import matplotlib.pyplot as plt
 import os
 from pathlib import Path
-import analysis.lib.quick_metadata_plots as mplts
+import lib.quick_metadata_plots as mplts
 import padeopsIO as pio
 import math
 from scipy.stats import describe
