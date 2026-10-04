@@ -1,6 +1,7 @@
 # ---
 # jupyter:
 #   jupytext:
+#     formats: ipynb,py:percent
 #     text_representation:
 #       extension: .py
 #       format_name: percent
@@ -22,6 +23,8 @@ import numpy as np
 import pandas as pd
 import math
 from UnifiedMomentumModel.Momentum import UnifiedMomentum
+import seaborn as sns
+from matplotlib.lines import Line2D
 
 # %%
 import lib.quick_metadata_plots as mplts
@@ -42,7 +45,16 @@ ctp_timeseries_df = pd.read_csv(
 
 # %%
 rows, fields = mplts.get_sim_varied_params(sim_folder)
-ids,use_simple_periodic,use_motion_timeseries,use_cT_timeseries = zip(*rows)
+ids,_,use_motion_timeseries,use_cT_timeseries = zip(*rows)
+
+# %%
+arr = np.asarray(use_motion_timeseries)              # list/series -> numpy array
+norm = np.char.lower(np.char.strip(arr.astype(str))) # normalize case/whitespace
+use_motion_timeseries = norm == "true"  
+
+arr = np.asarray(use_cT_timeseries)              # list/series -> numpy array
+norm = np.char.lower(np.char.strip(arr.astype(str))) # normalize case/whitespace
+use_cT_timeseries = norm == "true"  
 
 # %%
 freq = metadata_df["v_f"]
@@ -70,16 +82,10 @@ for i, id_str in enumerate(ids):
     run_folder = os.path.join(sim_folder, f"Sim_{id_str}")
     data = au.load_simulation_timeseries(run_folder, id_str, freq[0], spinup_time=75)
 
-    if i == 0:
-        base_ut = data["UTurb"]
-        base_udisk = data["UDisk"]
-        base_power = data["Power"]
-        continue
-
     t = data["Time"]
     ut = data["UTurb"]
-    p = data["Power"] - base_power
-    ud = data["UDisk"] - base_udisk
+    p = data["Power"]
+    ud = data["UDisk"]
 
     mts = use_motion_timeseries[i]
     ctts = use_cT_timeseries[i]
@@ -93,9 +99,14 @@ for i, id_str in enumerate(ids):
     })
     all_df.append(df)
 
-    ax_power.plot(t, p, label=label, lw=1.5)
-    ax_udisk.plot(t, ud, label=label, lw=1.5)
-    ax_ut.plot(t, ut, label=label, lw=1.5)
+    if i == 0:
+        base_ut = data["UTurb"]
+        base_udisk = data["UDisk"]
+        base_power = data["Power"]
+
+    ax_power.plot(t, p - base_power, label=label, lw=1.5)
+    ax_udisk.plot(t, ud - base_udisk, label=label, lw=1.5)
+    ax_ut.plot(t, ut - base_ut, label=label, lw=1.5)
 
 all_df = pd.concat(all_df, ignore_index=True)
 
@@ -125,9 +136,6 @@ fig_ut.tight_layout()
 plt.show()
 
 # %%
-all_df
-
-# %%
 UInf = 1
 D = 1
 rho = 1
@@ -152,9 +160,6 @@ all_df = pd.merge_asof(
 )
 
 # %%
-all_df
-
-# %%
 all_df.rename(columns={"CT_prime": "CTprime_ts"}, inplace=True)
 all_df["CTprime_stationary"] = stationary_ct_lookup
 all_df["CT_prime"] = np.where(
@@ -164,6 +169,65 @@ all_df["CT_prime"] = np.where(
 )
 
 all_df["LES_CT"] =  all_df["CT_prime"] * all_df["LES_UDisk"]**2 / (UInf)**2
+
+# %%
+for i in range(2, 4):
+    openfast_data = all_df[all_df["id"] == i].copy()
+    print(np.unique(openfast_data["use_cT_timeseries"]))
+
+    fig, ax1 = plt.subplots(figsize=(12, 4))
+    ax2 = ax1.twinx()  # second y-axis
+
+    # Left axis
+    sns.lineplot(data=openfast_data, x="Time", y="UTurb", ax=ax1, color="C0", lw=2)
+
+    # Right axis
+    sns.lineplot(data=openfast_data, x="Time", y="CT_prime", ax=ax2, color="C1", lw=2, ls="--")
+
+    ax1.set_xlabel("Time")
+    ax1.set_xlim(75, 85)
+    ax1.set_ylabel("UTurb", color="C0")
+    ax2.set_ylabel("CT_prime", color="C1")
+    ax1.tick_params(axis="y", labelcolor="C0")
+    ax2.tick_params(axis="y", labelcolor="C1")
+
+    # Combined legend
+    h1, l1 = ax1.get_legend_handles_labels()
+    h2, l2 = ax2.get_legend_handles_labels()
+    ax1.legend(h1 + h2, l1 + l2, loc="best")
+
+    plt.tight_layout()
+    plt.show()
+
+# %%
+all_df.keys()
+
+# %%
+plot_df = all_df[all_df["id"] > 1].copy()
+
+x0, x1 = 95, 100  # visible range
+mean_df = plot_df[(plot_df["Time"] >= x0) & (plot_df["Time"] <= x1)]  # mean over shown window
+
+# Keep color mapping consistent between line + mean line
+hue_order = sorted(mean_df["use_motion_timeseries"].dropna().unique())  # [False, True]
+palette = dict(zip(hue_order, sns.color_palette("deep", len(hue_order))))
+
+ax = sns.lineplot(
+    data=plot_df,
+    x="Time",
+    y="LES_UDisk",
+    hue="use_motion_timeseries",
+    hue_order=hue_order,
+    palette=palette,
+    lw=2,
+    errorbar=None
+)
+ax.set_xlim(x0, x1)
+
+# Horizontal mean line per hue group
+means = mean_df.groupby("use_motion_timeseries")["LES_UDisk"].mean()
+for grp, m in means.items():
+    ax.hlines(m, x0, x1, colors=palette[grp], linestyles="--", linewidth=2)
 
 # %%
 model = UnifiedMomentum()
@@ -221,6 +285,38 @@ all_df["Diff_CP"] = all_df["LES_CP"] - all_df["UMM_CP"]
 all_df["Diff_Power"] = all_df["LES_Power"] - all_df["UMM_Power"]
 
 # %%
-all_df
+all_df.keys()
+
+# %%
+sns.relplot(data = all_df[all_df["Time"] > 90], kind="line", x = "Time", y = "LES_CP", hue = "use_cT_timeseries", col = "use_motion_timeseries")
+
+# %%
+sns.relplot(data = all_df[all_df["Time"] > 95], kind="line", x = "Time", y = "UMM_CP", hue = "use_motion_timeseries", col = "use_cT_timeseries")
+
+# %%
+sns.relplot(data = all_df[all_df["Time"] > 75], kind="line", x = "Time", y = "UTurb", col = "use_cT_timeseries", row = "use_motion_timeseries")
+
+# %%
+# columns to average
+diff_cols = [c for c in all_df.columns if c.startswith("Diff_")]
+
+# one row per id
+time_avg = (
+    all_df
+    .groupby("id", as_index=False)[diff_cols]
+    .mean()
+)
+
+print(time_avg.head())
+
+# %%
+all_df["Phase"]
+
+# %%
+all_df.keys()
+
+# %%
+ax = sns.lineplot(data=all_df[all_df["id"] > 1], x="Time", y="Diff_CT", hue = "use_motion_timeseries", lw=2)
+ax.set_xlim(95, 100)
 
 # %%

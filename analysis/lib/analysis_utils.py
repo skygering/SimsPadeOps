@@ -11,6 +11,7 @@ import glob
 from pathlib import Path
 import lib.quick_metadata_plots as mplts
 import pandas as pd
+import re
 
 DATA_PATH = os.environ['SCRATCH'] + "/DataPadeOps/"
 
@@ -159,33 +160,18 @@ def load_simulation_timeseries(run_folder, id_str, freq, spinup_time=75):
     # -----------------------------
     # locate one or more log files
     # -----------------------------
-    log_files = sorted(glob.glob(f"*{id_str}*.o[0-9]*", root_dir=run_folder))
-
-    if not log_files:
-        extracted = extract_sim_log_from_batches(run_folder)
-        if extracted:
-            log_files = [extracted.name]
-
-    if not log_files:
-        raise RuntimeError("Could not locate any log file")
-
-    log_paths = [os.path.join(run_folder, lf) for lf in log_files]
-
-    # -----------------------------
-    # parse + merge logs
-    # -----------------------------
+    log_paths = get_all_log_paths(run_folder, id_str)
     if len(log_paths) == 1:
         log = _parse_one_log(log_paths[0])["log"]
     else:
         infos = [_parse_one_log(p) for p in log_paths]
-        log = _concat_logs_prefer_last(infos)  # restart overlaps keep second run values
+        log = _concat_logs_prefer_last(infos)
 
     # -----------------------------
     # align with turbine outputs
     # -----------------------------
     time = np.asarray(log["Time"])[:n_dumped]
-    tidx_raw = np.asarray(log["TIDX"])
-    tidx = np.insert(tidx_raw, 0, 0).astype(int)[:n_dumped]
+    tidx = np.asarray(log["TIDX"])[:n_dumped]
 
     mask = time > spinup_time
     time, tidx = time[mask], tidx[mask]
@@ -223,27 +209,45 @@ def load_simulation_timeseries(run_folder, id_str, freq, spinup_time=75):
     }
     return data
 
+
 def _parse_one_log(path):
     log = pio.query_logfile(
         path,
-        search_terms=["tilt", "uturb", "Time", "TIDX", "delta", "phase"],
+        search_terms=["tilt", "uturb", "Time =", "TIDX", "delta", "phase"],
         crop_equal=False,
     )
+
+    # always normalize key name
+    log["Time"] = log.pop("Time =")
 
     for k in ["Time", "TIDX", "tilt", "uturb", "delta", "phase"]:
         if k not in log:
             log[k] = np.array([])
 
-    time = np.asarray(log["Time"])
-    tidx = np.asarray(log["TIDX"]).astype(int) if len(log["TIDX"]) else np.array([], dtype=int)
+    time = np.asarray(log["Time"]).astype(float)
+    tidx = np.asarray(log["TIDX"]).astype(int)
+
+    # the initial turbine location/speed are output during initialization
+    # add in a TIDX and time to go with these (should be (0, 0))
+    dt = time[1] - time[0]
+    time = np.insert(time, 0, time[0] - dt)
+    tidx = np.insert(tidx, 0, tidx[0] - 1)
+    log["Time"] = time
+    log["TIDX"] = tidx
 
     with open(path, "r", errors="ignore") as f:
         txt = f.read(20000)
     is_restart = "RESTART FILE USED" in txt
 
+    # parse trailing .oNNNNNN to get job ID
+    name = Path(path).name
+    m = re.search(r"\.o(\d+)$", name)
+    job_id = int(m.group(1)) if m else -1 
+
     return {
         "path": path,
         "is_restart": is_restart,
+        "job_id": job_id,
         "first_time": time[0] if time.size else np.inf,
         "first_tidx": tidx[0] if tidx.size else np.iinfo(np.int64).max,
         "log": log,
@@ -251,7 +255,7 @@ def _parse_one_log(path):
 
 def _concat_logs_prefer_last(log_infos):
     # base run first, restart later
-    log_infos = sorted(log_infos, key=lambda d: (d["is_restart"], d["first_tidx"], d["first_time"]))
+    log_infos = sorted(log_infos, key=lambda d: (d["is_restart"], d["first_tidx"], d["first_time"], d["job_id"]))
 
     keys = ["Time", "TIDX", "tilt", "uturb", "delta", "phase"]
     out = {
@@ -271,13 +275,7 @@ def _concat_logs_prefer_last(log_infos):
 
     return out
 
-def extract_sim_log_from_batches(sim_dir):
-    """
-    Extract per-simulation log from batch output files.
-    Returns path to extracted log file or None if not found.
-    Prefers logs ending with end_token1 (success); falls back to end_token2 (error)
-    only if no successful run is found across all batch logs.
-    """
+def extract_sim_log_segments_from_batches(sim_dir):
     sim_dir = Path(sim_dir)
     sim_name = sim_dir.name
     parent = sim_dir.parent
@@ -286,58 +284,57 @@ def extract_sim_log_from_batches(sim_dir):
         return None
 
     start_token = f"Running {sim_name}"
-    end_token1 = f"Finished {sim_name}"
-    end_token2 = f"ERROR: {sim_name}"
-
-    backup_extracted = None
-    backup_source = None
+    end_token_success = f"Finished {sim_name}"
+    end_token_error = f"ERROR: {sim_name}"
 
     for batch_log in batch_logs:
-        with batch_log.open("r", errors="ignore") as f:
-            lines = f.readlines()
+        lines = batch_log.read_text(errors="ignore").splitlines(keepends=True)
 
         inside = False
         extracted = []
-        found_end = None
-
         for line in lines:
             if start_token in line:
                 inside = True
-                extracted = [line]  # Reset in case of multiple runs in same file
-                found_end = None
+                extracted = [line]
                 continue
             if inside:
                 extracted.append(line)
-                if end_token1 in line:
-                    found_end = "success"
-                    break
-                elif end_token2 in line:
-                    found_end = "error"
+                if end_token_success in line or end_token_error in line:
                     break
 
-        if found_end == "success" and extracted:
+        if extracted:
             out_file = sim_dir / f"{sim_name}_from_{batch_log.name}"
-            with out_file.open("w") as out:
-                out.write(f"# Extracted from batch log: {batch_log}\n")
-                out.write(f"# Simulation: {sim_name}\n\n")
-                out.writelines(extracted)
-            return out_file
-
-        elif found_end == "error" and extracted and backup_extracted is None:
-            # Save the first error log as a backup, keep searching
-            backup_extracted = extracted
-            backup_source = batch_log
-
-    # No successful run found — fall back to the error log if we have one
-    if backup_extracted and backup_source:
-        out_file = sim_dir / f"{sim_name}_from_{backup_source.name}"
-        with out_file.open("w") as out:
-            out.write(f"# Extracted from batch log: {backup_source}\n")
-            out.write(f"# Simulation: {sim_name}\n\n")
-            out.writelines(backup_extracted)
-        return out_file
+            with out_file.open("w") as f:
+                f.write(f"# Extracted from: {batch_log}\n")
+                f.writelines(extracted)
+            return str(out_file)
 
     return None
+
+def get_all_log_paths(run_folder, id_str):
+    run_folder = Path(run_folder)
+
+    # copy any log files from batches to local folder
+    extract_sim_log_segments_from_batches(run_folder)
+    # collect all log files for simulation
+    local_logs = sorted(glob.glob(f"*{id_str}*.o[0-9]*", root_dir=run_folder))
+    local_paths = [str(run_folder / lf) for lf in local_logs]
+    paths = list(local_paths)
+
+    # dedup + exists
+    out, seen = [], set()
+    for p in paths:
+        pp = Path(p)
+        if pp.exists():
+            rp = str(pp.resolve())
+            if rp not in seen:
+                seen.add(rp)
+                out.append(str(pp))
+
+    if not out:
+        raise RuntimeError("Could not locate any log file")
+
+    return sorted(out)
 
 def build_sim_dataframe(data, meta):
     df = pd.DataFrame({
@@ -364,8 +361,6 @@ def build_sim_dataframe(data, meta):
     period[1:] = np.cumsum(np.diff(phase) < 0)
     df["Period"] = period
     return df
-
-
 
 # def get_instantaneous_data(sim_folder, runid, tidx = "all", field = "u", **kwargs):
 #     run_folder = get_run_folder(sim_folder, runid)
