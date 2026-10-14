@@ -49,3 +49,6 @@ analysis/spod_results/*
 
 analysis/data/*
 analysis/saved_stats/*
+
+*.html
+*.mp4
