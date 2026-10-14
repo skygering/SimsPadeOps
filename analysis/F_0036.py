@@ -48,8 +48,8 @@ def num(x):
 df36 = pd.DataFrame({
     "id": ids_36,
     "surge_freq": num(surge_freq_36),
-    "surge_amplitude": 0.3,
-    "cT": 2.0, 
+    "surge_amplitude": num(surge_amplitude_36),
+    "cT": num(cT_36), 
     "nx": num(nx_36[0]), "ny": num(ny_36[0]), "nz": num(nz_36[0]),
     "Lx": num(Lx_36[0]), "Ly": num(Ly_36[0]), "Lz": num(Lz_36[0]),
     "dt": num(dt_36),
@@ -99,61 +99,32 @@ def load_runs_to_timeseries(df_runs, sim_folder, spinup_time):
 
 
 # %%
-ts36 = load_runs_to_timeseries(df36, sim_low_ctp_folder, 75)
+# ts36 = load_runs_to_timeseries(df36, sim_low_ctp_folder, 75)
 
 # %%
-ts36
+# ts36
 
 # %%
-r = df36.iloc[0]
+r = df36.iloc[28]
 id_str = r.id
 run_folder = os.path.join(sim_low_ctp_folder, f"Sim_{id_str}")
 
-sim = pio.BudgetIO(run_folder, padeops=True, runid=0, normalize_origin="turbine")
-
-power = sim.read_turb_power("all", turb=1)
-uvel = sim.read_turb_uvel("all", turb=1)
-
-# %%
-n_dumped = min(len(power), len(uvel))
-power, uvel = power[:n_dumped], uvel[:n_dumped]
+data = au.load_simulation_timeseries(
+    run_folder,
+    id_str,
+    r.surge_freq,
+    spinup_time=0
+)
 
 # %%
-power, uvel
+r
 
 # %%
-log_paths = au.get_all_log_paths(run_folder, id_str)
+data
 
 # %%
-log_paths
+plt.plot(data["TIDX"], data["UTurb"])
+dt = 14000
+plt.xlim(2000+dt, 3000+dt)
 
 # %%
-log0 = au._parse_one_log(log_paths[0])["log"]
-log1 = au._parse_one_log(log_paths[1])["log"]
-
-# %%
-log0["uturb"][19995:20005]
-
-# %%
-log1["TIDX"][:5]
-
-# %%
-log1["uturb"][:5]
-
-# %%
-log_paths = au.get_all_log_paths(run_folder, id_str)
-if len(log_paths) == 1:
-    log = au._parse_one_log(log_paths[0])["log"]
-else:
-    infos = [au._parse_one_log(p) for p in log_paths]
-    log = au._concat_logs_prefer_last(infos)
-
-# %%
-log["Time"]
-
-# %%
-log["TIDX"]
-
-# %%
-time = np.asarray(log["Time"])[:n_dumped]
-tidx = np.asarray(log["TIDX"])[:n_dumped]
