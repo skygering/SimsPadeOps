@@ -22,7 +22,7 @@ BASE = Path(__file__).parent.parent
 TEMPLATE_PATH = BASE.joinpath("templates")
 DEFAULTS_PATH = BASE.joinpath("defaults")
 SIMS_PATH = BASE.joinpath("simulations")
-DATA_PATH = os.environ['SCRATCH'] + "/Data/"
+DATA_PATH = os.environ['SCRATCH'] + "/DataPadeOps/"
 
 # important constants
 TASKS_PER_NODE = 48  # skx nodes on Stampede3

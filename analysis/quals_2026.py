@@ -1,13 +1,14 @@
 # ---
 # jupyter:
 #   jupytext:
+#     formats: ipynb,py:percent
 #     text_representation:
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
-#       jupytext_version: 1.19.0
+#       jupytext_version: 1.19.5
 #   kernelspec:
-#     display_name: simspadeops-Wg-7Zt3Y-py3.11
+#     display_name: simspadeops-YbNxeWqo-py3.11
 #     language: python
 #     name: python3
 # ---

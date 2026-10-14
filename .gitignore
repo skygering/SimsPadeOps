@@ -36,6 +36,9 @@ simulations/*
 !simulations/*.py
 !simulations/*.md
 
+*.csv
+!simulations/*.csv
+
 # analysis folders
 analysis/spod_results/*
 
@@ -45,7 +48,6 @@ analysis/spod_results/*
 *.ipynb
 
 *.png
-*.csv
 
 analysis/data/*
 analysis/saved_stats/*

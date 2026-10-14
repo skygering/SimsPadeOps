@@ -1,5 +1,5 @@
-import analysis.lib.analysis_utils as au
-import analysis.lib.quick_metadata_plots as mplts
+import lib.analysis_utils as au
+import lib.quick_metadata_plots as mplts
 
 mplts.plot_run_power(au.DATA_PATH + "B_0000_Files", label = "cT = 3.0")
 

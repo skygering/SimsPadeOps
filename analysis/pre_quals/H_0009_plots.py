@@ -1,12 +1,12 @@
-import analysis.lib.analysis_utils as au
-import analysis.lib.quick_metadata_plots as mplts
+import lib.analysis_utils as au
+import lib.quick_metadata_plots as mplts
 from pathlib import Path
 import os
 import padeopsIO as pio
 
 data_path = Path(au.DATA_PATH)
 hit_folder = os.path.join(au.DATA_PATH, "F_0009_X_SU_PI_HIT_Files")
-sim_folder = "/scratch/10264/sgering/Data/F_0009_X_SU_PI_Files/Sim_0000"
+sim_folder = "/scratch/10264/sgering/DataPadeOps/F_0009_X_SU_PI_Files/Sim_0000"
 
 log0 = "TI_test_sg_0000.o1721392"
 log1 = "TI_test_sg_0001.o1721393"

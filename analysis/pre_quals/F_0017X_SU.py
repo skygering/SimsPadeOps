@@ -14,8 +14,8 @@
 
 # %%
 import os
-import analysis.lib.analysis_utils as au
-import analysis.lib.quick_metadata_plots as qmplt
+import lib.analysis_utils as au
+import lib.quick_metadata_plots as qmplt
 import padeopsIO as pio
 import matplotlib.pyplot as plt
 import numpy as np
@@ -135,10 +135,10 @@ ds0_budget0 = sim0.slice(budget_terms=budget_0_keys, xlim = [-1, 16], ylim = 0, 
 ds0_budget1 = sim0.slice(budget_terms=budget_1_keys, xlim = [-1, 16], ylim = 0, zlim = 0, phase = 0.5) 
 
 # %%
-sim0_log = "/scratch/10264/sgering/Data/F_0018_SU_Files/Sim_0000/phase_budgets_0000.o2522491"
-sim3_log = "/scratch/10264/sgering/Data/F_0018_SU_Files/Sim_0003/phase_budgets_0003.o2522496"
-sim6_log = "/scratch/10264/sgering/Data/F_0018_SU_Files/Sim_0006/phase_budgets_0006.o2522539"
-sim9_log = "/scratch/10264/sgering/Data/F_0018_SU_Files/Sim_0009/phase_budgets_0009.o2522548"
+sim0_log = "/scratch/10264/sgering/DataPadeOps/F_0018_SU_Files/Sim_0000/phase_budgets_0000.o2522491"
+sim3_log = "/scratch/10264/sgering/DataPadeOps/F_0018_SU_Files/Sim_0003/phase_budgets_0003.o2522496"
+sim6_log = "/scratch/10264/sgering/DataPadeOps/F_0018_SU_Files/Sim_0006/phase_budgets_0006.o2522539"
+sim9_log = "/scratch/10264/sgering/DataPadeOps/F_0018_SU_Files/Sim_0009/phase_budgets_0009.o2522548"
 
 # %%
 run_folder6 = au.get_run_folder(sim_folder, 6)

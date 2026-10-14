@@ -38,7 +38,14 @@
         "surge_amplitude": 0,
         "pitch_amplitude": 0,
         "yaw": 0,
-        "tilt": 0
+        "tilt": 0,
+        "use_quals_style": true,
+        "useCTprime": true,
+        "use_simple_periodic": true,
+        "use_motion_timeseries": false,
+        "motion_timeseries_file": "",
+        "use_cT_timeseries": false,
+        "cT_timeseries_file": ""
     },
     "run": {
         "run_file_name": "run.sh",
