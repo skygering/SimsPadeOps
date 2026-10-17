@@ -42,7 +42,7 @@ simulations/*
 # analysis folders
 analysis/spod_results/*
 
-*/__pycache__
+__pycache__/
 
 # ipynb files since they are synced with jupytext
 *.ipynb
