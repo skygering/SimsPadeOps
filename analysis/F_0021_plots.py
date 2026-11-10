@@ -38,7 +38,7 @@ sim_phase_budget = pio.BudgetIO(os.path.join(sim_21_all_folder, phase_budget), p
 sim_phase_turb_budget = pio.BudgetIO(os.path.join(sim_21_all_folder, phase_turb_budget), padeops=True, runid=0, normalize_origin="turbine")
 
 # %%
-sim_phase_turb_budget.slice(budget_terms=['ubar'], xlim=[-5, 20], ylim=[-5, 5], zlim=0)
+sim_phase_turb_budget.slice(budget_terms=['xAD'], xlim=[-5, 20], ylim=[-5, 5], zlim=0)
 
 # %%
 ds_time0 = sim_time_budget.slice(budget_terms=['ubar'], xlim=[-5, 20], ylim=[-5, 5], zlim=0)
@@ -55,13 +55,19 @@ for i in [0.1 * i for i in range(10)]:
     ds_phase_i['ubar'].imshow(vmin = 0.4, vmax = 1.6)
 
 # %%
-ds_phase_turb = sim_phase_turb_budget.slice(budget_terms=['ubar'], xlim=[-5, 20], ylim=[-5, 5], zlim=0)
-ds_phase_turb['ubar'].imshow(vmin = 0.4, vmax = 1.6)
+sim_phase_turb_budget.existing_terms()
+
+# %%
+key = "DuDt"
+
+# %%
+ds_phase_turb = sim_phase_turb_budget.slice(budget_terms=[key], xlim=[-5, 20], ylim=[-5, 5], zlim=0)
+ds_phase_turb[key].imshow(vmin = -0.3, vmax = 0.3)
 
 # %%
 for i in [0.1 * i for i in range(10)]:
     print(f"Phase {i}")
-    ds_phase_turb_i = sim_phase_turb_budget.slice(budget_terms=['ubar'], xlim=[-5, 20], ylim=[-5, 5], zlim=0, phase = i)
-    ds_phase_turb_i['ubar'].imshow(vmin = 0.4, vmax = 1.6)
+    ds_phase_turb_i = sim_phase_turb_budget.slice(budget_terms=[key], xlim=[-5, 20], ylim=[-5, 5], zlim=0, phase = i)
+    ds_phase_turb_i[key].imshow(vmin = -0.3, vmax = 0.3)
 
 # %%

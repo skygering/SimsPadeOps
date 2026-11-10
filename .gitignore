@@ -54,3 +54,6 @@ analysis/saved_stats/*
 
 *.html
 *.mp4
+*.npy
+*.npz
+*.pdf

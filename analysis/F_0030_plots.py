@@ -5,7 +5,7 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
-#       jupytext_version: 1.19.0
+#       jupytext_version: 1.19.6
 #   kernelspec:
 #     display_name: simspadeops-YbNxeWqo-py3.11
 #     language: python
@@ -27,6 +27,7 @@ from pathlib import Path
 from UnifiedMomentumModel.Momentum import UnifiedMomentum, ThrustBasedUnified
 import math
 import streamtube
+import xarray as xr
 
 # %%
 import matplotlib as mpl
@@ -46,6 +47,171 @@ run_folder = au.get_run_folder(sim_folder, 0)
 sim = pio.BudgetIO(run_folder, padeops = True, runid = 0, normalize_origin="turbine", verbose=False)
 log_file = glob.glob(f'*{0000}*.o[0-9]*', root_dir=run_folder)
 logfile_path = os.path.join(run_folder, log_file[0])
+
+# %%
+key = "xAD"
+
+ds_phase_turb = sim.slice(budget_terms=[key], xlim=[-5, 20], ylim=[-5, 5], zlim=0)
+ds_phase_turb[key].imshow(vmin = -3, vmax = 3)
+
+# %%
+for i in [0.1 * i for i in range(10)]:
+    print(f"Phase {i}")
+    ds_phase_turb_i = sim.slice(budget_terms=[key], xlim=[-5, 20], ylim=[-5, 5], zlim=0, phase = i) - ds_phase_turb
+    ds_phase_turb_i[key].imshow(vmin = -3, vmax = 3)
+
+# %%
+from padeopsIO.budget_addons import Wave_x, Wave_y, Wave_z
+from padeopsIO.utils import fluids_utils as fluids
+
+# %%
+keys = ["ubar", "vbar", "wbar", "uu", "uv", "uw", "vv", "vw", "ww", "pbar",
+        "tau11", "tau12", "tau13", "DuDt", "dpdx", "xSGS", "xAD"]
+crop = dict(xlim=(-2, 10), ylim=(-1.5, 1.5), zlim=(-1.5, 1.5))
+
+# one phase + time budget
+ds_p, ds_t = sim.read_wave_budgets(keys, phase=0.3, **crop)
+wb = Wave_x(ds_p, ds_t)          # storage from the solver terms
+wb.compute()
+
+# all phases: independent storage, Check A, optional stress split
+T_wave = 1.0 / f
+ds_all, ds_t = sim.read_wave_budgets(keys, phase="all", **crop)
+print(fluids.compare_phase_to_time(ds_all, ds_t))                   # Check 0
+
+# %%
+# les = fluids.compute_wave_les_budget(ds_all, ds_t, 0, T_wave)       # Check A
+# split = fluids.split_time_stress(ds_all, ds_t, 0)                   # optional
+
+# %%
+keys = fluids.uvw_keys + fluids.rs_keys[0] + ["DuDt", "dpdx", "xSGS", "xAD", "pbar"]
+lims = dict(xlim=(-2, 10), ylim=(-1.5, 1.5), zlim=(-1.5, 1.5))
+ds_phase, ds_time = sim.read_wave_budgets(keys, phase="all", **lims)
+_, w = sim.read_phase_budgets(keys[:1], **lims)        # bin weights
+
+# %%
+wb = Wave_x(ds_phase, ds_time, base_agg=1, storage="phases", period=2.0,
+            adv_form="advective")
+wb._check_terms()
+wb._compute_budget()      # fills wb.base_terms (and the residual)
+wb.aggregate(1)           # copies terms into wb, keeping the j-components
+
+print(list(wb.data_vars)) # expect storage, adv, prod, wavewave, rs_phase, rs_time, prss, sgs, adm, residual
+
+# %%
+
+from matplotlib.path import Path as MplPath   # avoids clashing with pathlib.Path
+def tube_mask(traj, x, y, z):
+    Y, Z = np.meshgrid(y, z, indexing='ij')
+    pts = np.column_stack([Y.ravel(), Z.ravel()])
+    ys = np.array([np.interp(x, t[:, 0], t[:, 1], left=np.nan, right=np.nan) for t in traj])
+    zs = np.array([np.interp(x, t[:, 0], t[:, 2], left=np.nan, right=np.nan) for t in traj])
+    mask = np.zeros((len(x), len(y), len(z)), bool)
+    for i in range(len(x)):
+        ok = ~np.isnan(ys[:, i])
+        if ok.sum() < 3:
+            continue
+        yi, zi = ys[ok, i], zs[ok, i]
+        o = np.argsort(np.arctan2(zi - zi.mean(), yi - yi.mean()))   # order points around the rim
+        mask[i] = MplPath(np.column_stack([yi[o], zi[o]])).contains_points(pts).reshape(Y.shape)
+    return xr.DataArray(mask, coords=dict(x=x, y=y, z=z), dims=('x', 'y', 'z'))
+
+
+# %%
+mean = sim.slice(budget_terms=["ubar", "vbar", "wbar"], phase=None,
+                 xlim=(-2, 16), ylim=(-2, 2), zlim=(-2, 2))
+stream = streamtube.Streamtube(mean["x"], mean["y"], mean["z"],
+                               mean["ubar"], mean["vbar"], mean["wbar"])
+traj = stream.compute_streamtube(return_trajectories=True)   # seed at the mean disk position
+M = tube_mask(traj, ds_time.x.values, ds_time.y.values, ds_time.z.values) 
+
+# %%
+dA = float(ds_time.y.diff("y").mean() * ds_time.z.diff("z").mean())
+xint = lambda da: da.where(M).sum(["y", "z"]) * dA
+
+I = xr.Dataset({k: xint(fluids.sum_over(wb[k], ("j",))) for k in wb.data_vars})  # (phase, x)
+
+U  = fluids.assemble_Ui(ds_time,  dim="i")
+uw = fluids.assemble_Ui(ds_phase, dim="i") - U
+Ux, ux = U.isel(i=0, drop=True), uw.isel(i=0, drop=True)
+uu = fluids.rs_keys[0][0]                  # the xx stress key
+Fx = {"adv": -Ux*ux, "prod": -ux*Ux, "wavewave": -ux*ux,
+      "rs_phase": -ds_phase[uu], "rs_time": ds_time[uu]}
+
+Phi  = xr.Dataset({k: xint(v) for k, v in Fx.items()})
+Wall = xr.Dataset({k: I[k] - Phi[k].differentiate("x") for k in Fx})
+
+# %%
+from matplotlib.legend_handler import HandlerTuple
+from matplotlib.lines import Line2D
+
+# %%
+plt.rcParams.update({"font.family": "serif", "mathtext.fontset": "cm", "font.size": 13})
+
+# ---- budget with j-components kept ----
+wb = Wave_x(ds_phase, ds_time, base_agg=1, storage="phases", period=2.0,
+            adv_form="advective")
+wb._check_terms(); wb._compute_budget(); wb.aggregate(1)
+print(wb["adv"].j.values)     
+
+# %%
+# ---- streamtube average ----
+D, uh = 1.0, 1.0                     # length / velocity scales of the simulation
+dA = float(ds_time.y.diff("y").mean() * ds_time.z.diff("z").mean())
+A = M.sum(["y", "z"]) * dA           # tube area A(x)
+valid = A > 0                        # the tube doesn't exist upstream of the seed
+
+def tube_avg(da):
+    out = da.where(M).sum(["y", "z"]) * dA / A    # <.>_s ; use / (np.pi*0.25) for a fixed rotor area instead
+    return (out * D / uh**2).where(valid)
+
+jx  = lambda k: wb[k].isel(j=0, drop=True)
+jyz = lambda k: wb[k].isel(j=slice(1, None)).sum("j")
+jall = lambda k: fluids.sum_over(wb[k], ("j",))
+
+# %%
+# label: (field, colour). Together these cover every term, so they sum to the residual.
+groups = {
+    r"$-\bar{u}\,\partial_x\tilde{u}$":                    (jx("adv"),  "tab:gray"),
+    r"$-(\bar{v}\partial_y+\bar{w}\partial_z)\tilde{u}$":  (jyz("adv"), "tab:cyan"),
+    r"$-\tilde{u}\,\partial_x\bar{u}$":                    (jx("prod"), "tab:brown"),
+    r"$-(\tilde{v}\partial_y+\tilde{w}\partial_z)\bar{u}$": (jyz("prod"), "tab:purple"),
+    r"$-\tilde{u}_j\partial_j\tilde{u}$":                  (jall("wavewave"), "tab:olive"),
+    "Turb":   (jall("rs_phase") + jall("rs_time"), "tab:red"),
+    "Pres":   (wb["prss"], "tab:blue"),
+    "SGS":    (wb["sgs"],  "tab:orange"),
+    "ADM":    (wb["adm"],  "tab:green"),
+    r"$-\partial_t\tilde{u}$": (wb["storage"], "tab:pink"),
+}
+S = {lab: tube_avg(f) for lab, (f, _) in groups.items()}
+S_res = tube_avg(wb["residual"])
+
+# %%
+# ---- plot: solid = first phase, dotted = second ----
+phases = [0.0, 0.5]
+styles = [dict(ls="-", alpha=1.0), dict(ls=":", lw=2.5, alpha=0.6)]
+xmin = 1.0                           # start downstream of the ADM spike
+
+fig, ax = plt.subplots(figsize=(8.5, 4.5))
+handles, labels = [], []
+for lab, (_, c) in groups.items():
+    for ph, st in zip(phases, styles):
+        S[lab].sel(phase=ph, method="nearest").sel(x=slice(xmin, None)).plot(ax=ax, color=c, **st)
+    handles.append(tuple(Line2D([], [], color=c, **st) for st in styles))
+    labels.append(lab)
+
+for ph, c in zip(phases, ["k", "0.35"]):
+    S_res.sel(phase=ph, method="nearest").sel(x=slice(xmin, None)).plot(ax=ax, color=c, ls="--", lw=2)
+handles.append((Line2D([], [], color="k", ls="--", lw=2), Line2D([], [], color="0.35", ls="--", lw=2)))
+labels.append("Res")
+
+ax.axhline(0, color="k", lw=0.5)
+ax.set_xlabel(r"$x/D$")
+ax.set_ylabel(r"$D\,u_h^{-2}\,\langle M_x \rangle_s$")
+ax.set_title("")
+ax.legend(handles, labels, handler_map={tuple: HandlerTuple(ndivide=None, pad=0)},
+          handlelength=4.5, loc="center left", bbox_to_anchor=(1.02, 0.5), frameon=False)
+fig.tight_layout()
 
 # %%
 power = sim.read_turb_power("all", turb=1)

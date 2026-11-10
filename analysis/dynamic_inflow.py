@@ -7,7 +7,7 @@
 #       format_version: '1.3'
 #       jupytext_version: 1.19.6
 #   kernelspec:
-#     display_name: simspadeops-Wg-7Zt3Y-py3.11
+#     display_name: simspadeops-YbNxeWqo-py3.11
 #     language: python
 #     name: python3
 # ---
@@ -25,10 +25,10 @@ from UnifiedMomentumModel.Momentum import UnifiedMomentum, ThrustBasedUnified
 import seaborn as sns
 from matplotlib.lines import Line2D
 
-
 # %%
-# import lib.quick_metadata_plots as mplts
-# import lib.analysis_utils as au
+import lib.quick_metadata_plots as mplts
+import lib.analysis_utils as au
+
 
 # %%
 def num(x):
@@ -36,121 +36,171 @@ def num(x):
 
 
 # %%
-# data_path = Path(au.DATA_PATH)
+data_path = Path(au.DATA_PATH)
 
 # --- F_0029 ---
-# sim_reg_f_folder = os.path.join(au.DATA_PATH, "F_0029_SU_Files")
-# rows_29, fields_29 = mplts.get_sim_varied_params(sim_reg_f_folder)
-# (ids_29, cT_29, surge_amp_29, surge_freq_29, nx_29, ny_29, nz_29,
-#     Lx_29, Ly_29, Lz_29, dt_29, tstop_29, n_hrs_29, filterWidth_29, useCorrection_29
-# ) = zip(*rows_29)
+sim_reg_f_folder = os.path.join(au.DATA_PATH, "F_0029_SU_Files")
+rows_29, fields_29 = mplts.get_sim_varied_params(sim_reg_f_folder)
+(ids_29, cT_29, surge_amp_29, surge_freq_29, nx_29, ny_29, nz_29,
+    Lx_29, Ly_29, Lz_29, dt_29, tstop_29, n_hrs_29, filterWidth_29, useCorrection_29
+) = zip(*rows_29)
 
 # %%
-# df29 = pd.DataFrame({
-#     "id": ids_29,
-#     "cT": num(cT_29),
-#     "surge_amplitude": num(surge_amp_29),
-#     "surge_freq": num(surge_freq_29),
-#     "nx": num(nx_29), "ny": num(ny_29), "nz": num(nz_29),
-#     "Lx": num(Lx_29), "Ly": num(Ly_29), "Lz": num(Lz_29),
-#     "dt": num(dt_29),
-#     "filterWidth": num(filterWidth_29),
-#     # leave non-numeric as-is:
-#     "useCorrection": useCorrection_29,
-# })
+df29 = pd.DataFrame({
+    "id": ids_29,
+    "cT": num(cT_29),
+    "surge_amplitude": num(surge_amp_29),
+    "surge_freq": num(surge_freq_29),
+    "nx": num(nx_29), "ny": num(ny_29), "nz": num(nz_29),
+    "Lx": num(Lx_29), "Ly": num(Ly_29), "Lz": num(Lz_29),
+    "dt": num(dt_29),
+    "filterWidth": num(filterWidth_29),
+    # leave non-numeric as-is:
+    "useCorrection": useCorrection_29,
+})
 
-# df29 = df29[df29["dt"] == 0.005]
-# # keep only Av = 0.3
-# df29 = df29[np.isclose(df29["surge_amplitude"], 0.1)]
-# # keep only CT = CT_val
-# CT_val = 1.33
-# df29 = df29[np.isclose(df29["cT"], CT_val)]
+df29 = df29[df29["dt"] == 0.005]
 
-# %%
-# def load_runs_to_timeseries(df_runs, sim_folder, spinup_time):
-#     dfs = []
-#     for r in df_runs.itertuples(index=False):
-#         try:
-#             id_str = r.id
-#             run_folder = os.path.join(sim_folder, f"Sim_{id_str}")
-
-#             data = au.load_simulation_timeseries(
-#                 run_folder,
-#                 id_str,
-#                 r.surge_freq,
-#                 spinup_time=spinup_time
-#             )
-
-#             meta = {
-#                 "id": int(r.id),
-#                 "CT_prime": float(r.cT),  # or r.CT_prime if that is your column name
-#                 "Surge_Amplitude": float(r.surge_amplitude),
-#                 "Pitch_Amplitude": 0.0,
-#                 "Frequency": float(r.surge_freq),
-#                 "nx": float(r.nx),
-#                 "ny": float(r.ny),
-#                 "nz": float(r.nz),
-#                 "Lx": float(r.Lx),
-#                 "Ly": float(r.Ly),
-#                 "Lz": float(r.Lz),
-#                 "dt": float(r.dt),
-#                 "filterWidth": float(r.filterWidth),
-#                 "useCorrection": r.useCorrection,
-#             }
-
-#             df_temp = au.build_sim_dataframe(data, meta)
-#             dfs.append(df_temp)
-#         except Exception as e:
-#             print(f"Error occurred in {id_str}: {e}")
-#     return pd.concat(dfs, ignore_index=True) if dfs else pd.DataFrame()
+# keep only CT = CT_val
+CT_val = 1.33
+df29 = df29[np.isclose(df29["cT"], CT_val)]
 
 # %%
-# ts29 = load_runs_to_timeseries(df29, sim_reg_f_folder, 75)
-# ts29 = ts29.rename(columns={"UDisk": "LES_UDisk", "Power": "LES_Power", "DeltaX": "XTurb"})
-# ts29.keys()
+df_stationary = df29[np.isclose(df29["surge_amplitude"], 0.0)]
 
 # %%
+# Keep Av = 0.3 and Av = 0.0
+df29 = df29[
+    np.isclose(df29["surge_amplitude"], 0.3) |
+    np.isclose(df29["surge_amplitude"], 0.0)
+]
+
+
+# %%
+def load_runs_to_timeseries(df_runs, sim_folder, spinup_time):
+    dfs = []
+    for r in df_runs.itertuples(index=False):
+        try:
+            id_str = r.id
+            run_folder = os.path.join(sim_folder, f"Sim_{id_str}")
+
+            data = au.load_simulation_timeseries(
+                run_folder,
+                id_str,
+                r.surge_freq,
+                spinup_time=spinup_time
+            )
+
+            meta = {
+                "id": int(r.id),
+                "CT_prime": float(r.cT),  # or r.CT_prime if that is your column name
+                "Surge_Amplitude": float(r.surge_amplitude),
+                "Pitch_Amplitude": 0.0,
+                "Frequency": float(r.surge_freq),
+                "nx": float(r.nx),
+                "ny": float(r.ny),
+                "nz": float(r.nz),
+                "Lx": float(r.Lx),
+                "Ly": float(r.Ly),
+                "Lz": float(r.Lz),
+                "dt": float(r.dt),
+                "filterWidth": float(r.filterWidth),
+                "useCorrection": r.useCorrection,
+            }
+
+            df_temp = au.build_sim_dataframe(data, meta)
+            dfs.append(df_temp)
+        except Exception as e:
+            print(f"Error occurred in {id_str}: {e}")
+    return pd.concat(dfs, ignore_index=True) if dfs else pd.DataFrame()
+
+
+# %%
+ts29 = load_runs_to_timeseries(df29, sim_reg_f_folder, 75)
+ts29 = ts29.rename(columns={"UDisk": "LES_UDisk", "Power": "LES_Power", "DeltaX": "XTurb"})
+ts29.keys()
+
+# %%
+dx, dy, dz = ts29["Lx"]/ts29["nx"], ts29["Ly"]/ts29["ny"], ts29["Lz"]/ts29["nz"]
+delta = np.sqrt(dx**2 + dy**2 + dz**2)
+M_inv = np.array(1 + (ts29["CT_prime"] * delta) / (2 * np.sqrt(3 * np.pi)))
+
 UInf = 1.0
 D = 1.0
 rho = 1.0
 A = math.pi * (D/2)**2
 Pnorm = 0.5 * rho * A * UInf**3
 
-# ts29["URel"] = UInf - ts29["UTurb"]
+ts29["URel"] = UInf - ts29["UTurb"]
 
 # ts29["LES_an"] =  1 - (ts29["LES_UDisk"] / ts29["URel"])
-# ts29["LES_CT"] =  ts29["CT_prime"] * ts29["LES_UDisk"]**2 / (UInf)**2
-# ts29["LES_CP"] = ts29["LES_Power"] / Pnorm
+frame = "abs"
+if frame == "abs":
+    ts29["LES_an"] = 1 - (ts29["LES_UDisk"] + ts29["UTurb"]) / UInf
+elif frame == "rel":
+     ts29["LES_an"] = 1 - (ts29["LES_UDisk"] / ts29["URel"])
 
-# model = UnifiedMomentum()
-# CT_prime = CT_val
-# umm_sol = model(CT_prime, yaw=0.0, tilt=0.0)
+ts29["LES_CT"] =  ts29["CT_prime"] * ts29["LES_UDisk"]**2 / (UInf)**2
+ts29["LES_CP"] = ts29["LES_Power"] / Pnorm
 
-# def get_umm_udisk(row):
-#     return (1 - umm_sol.an) * row.URel
-# def get_umm_ct(row):
-#     return umm_sol.Ct * row.URel**2
-# def get_umm_cp(row):
-#     return umm_sol.Cp * row.URel**3
+model = UnifiedMomentum()
+CT_prime = CT_val
+umm_sol = model(CT_prime, yaw=0.0, tilt=0.0)
 
-# ts29["UMM_UDisk"] = ts29.apply(get_umm_udisk, axis=1)
-# ts29["UMM_an"] = 1 - (ts29["UMM_UDisk"] / ts29["URel"])
-# ts29["UMM_CT"] = ts29.apply(get_umm_ct, axis=1)
-# ts29["UMM_CP"] = ts29.apply(get_umm_cp, axis=1)
+ts29["UMM_UDisk"] = (1 - umm_sol.an) * ts29["URel"] #/ M_inv
 
-# %%
-# needed_cols = [
-#     'id', 'CT_prime', 'Surge_Amplitude', 'Frequency', 'Time', 'TIDX', 'XTurb', 'UTurb', 'Phase', 'Period', 'URel', 
-#     'LES_UDisk', 'LES_an', 'LES_CT', 'LES_CP', 'UMM_UDisk', 'UMM_an', 'UMM_CT', 'UMM_CP',
-# ]
+if frame == "abs":
+    ts29["UMM_an"] = 1 - (ts29["UMM_UDisk"] + ts29["UTurb"]) / UInf
+elif frame == "rel":
+    ts29["UMM_an"] = 1 - (ts29["UMM_UDisk"] / ts29["URel"])
+
+ts29["UMM_CT"]    = umm_sol.Ct * ts29["URel"]**2
+ts29["UMM_CP"]    = umm_sol.Cp * ts29["URel"]**3
 
 # %%
-# test_vals = ts29[ts29["Frequency"] == 0.5]
-# test_vals = test_vals[needed_cols]
-# test_vals
+needed_cols = [
+    'id', 'CT_prime', 'Surge_Amplitude', 'Frequency', 'Time', 'TIDX', 'XTurb', 'UTurb', 'Phase', 'Period', 'URel', 
+    'LES_UDisk', 'LES_an', 'LES_CT', 'LES_CP', 'UMM_UDisk', 'UMM_an', 'UMM_CT', 'UMM_CP',
+]
 
 # %%
-test_vals = pd.read_csv("/Users/sky/Downloads/dynamic_inflow_test_vals.csv")
+stationary_mask = (ts29["Surge_Amplitude"] == 0)
+ref_df = (
+    ts29[stationary_mask]
+    .groupby("CT_prime")[needed_cols]
+    .mean()
+    .rename(columns=lambda c: f"{c}_ref")
+    .reset_index()
+)
+
+normalize = False
+
+# if normalize:
+#     ts29 = ts29.merge(ref_df, on="CT_prime", how="left", suffixes=("", "_ref"))
+
+#     # LES normalization
+#     cols = [
+#         "LES_CP", "LES_CT", "LES_an", "LES_UDisk",
+#         "UMM_CP", "UMM_CT", "UMM_an", "UMM_UDisk"
+#     ]
+
+#     for col in cols:
+#         ts29[col] = ts29[col] / ts29[f"{col}_ref"]
+
+#     ts29 = ts29[needed_cols]
+
+ts29 = ts29[ts29["Surge_Amplitude"] > 0]
+
+# %%
+ts29
+
+# %%
+test_vals = ts29[ts29["Frequency"] == 0.5]
+test_vals = test_vals[needed_cols]
+test_vals
+
+# %%
+# test_vals = pd.read_csv("/Users/sky/Downloads/dynamic_inflow_test_vals.csv")
 
 # %% [markdown]
 # ## Ferreira
@@ -206,35 +256,47 @@ def get_ferreira(a0, v_act, ct, time, dt):
 
 # %%
 time = np.array(test_vals["Time"])
-an_umm = np.array(test_vals["UMM_an"])
-an_les = np.array(test_vals["LES_an"])
-ct = np.array(test_vals["LES_CT"])
+mask = time > 76
+time = time[mask]
+an_umm = np.array(test_vals["UMM_an"])[mask]
+an_les = np.array(test_vals["LES_an"])[mask]
+ct = np.array(test_vals["LES_CT"])[mask]
 # umm_ct = np.array(test_vals["UMM_CT"])
-x_act = np.array(test_vals["XTurb"])
-v_act = np.array(test_vals["UTurb"])
+x_act = np.array(test_vals["XTurb"])[mask]
+v_act = np.array(test_vals["UTurb"])[mask]
 dt = time[1] - time[0]
 
 # %%
 an_ferreira = get_ferreira(an_umm[0], v_act, ct, time, dt)
 
 # %%
-fig, ax1 = plt.subplots()
+fig, ax1 = plt.subplots(dpi =300)
+
+if normalize:
+    plot_an_les = an_les / ref_df["LES_an_ref"].item()
+    plot_an_umm = an_umm / ref_df["UMM_an_ref"].item()
+    plot_an_ferreira = an_ferreira / ref_df["UMM_an_ref"].item()
+else:
+    plot_an_les = an_les
+    plot_an_umm = an_umm
+    plot_an_ferreira = an_ferreira
+    
 
 # Plot on left axis
-ax1.plot(time, x_act, label="x", color='tab:red')
-# ax1.plot(time, v_act, label="x", color='tab:orange')
-ax1.plot(time, an_les, label = "LES an", color="tab:orange")
-ax1.plot(time, an_umm, label = "UMM an", color="tab:orange", linestyle = "--")
-ax1.plot(time, an_ferreira, label = "Ferreira", color="tab:green")
-ax1.set_ylim(-0.1, 0.7)
-# ax1.set_xlim(85, 86)
+# ax1.plot(time, x_act, label="x", color='tab:red')
+ax1.plot(time, plot_an_les, label = "LES an", color="tab:orange")
+ax1.plot(time, plot_an_umm, label = "UMM an", color="tab:green", linestyle = "--")
+ax1.plot(time, plot_an_ferreira, label = "Ferreira", color="tab:green")
+ax1.set_ylim(0.0, 0.5)
+ax1.set_xlim(90, 95)
 ax1.set_ylabel('x, v, an')  # Label for left axis
 ax1.set_xlabel('time')
 
 # Create second y-axis and plot ct
 ax2 = ax1.twinx()
-ax2.plot(time, ct, label="ct", color='tab:blue')
-ax2.set_ylim(-0.1, 1.5)
+ax2.plot(time, 1 - v_act, label="LES Urel", color='tab:red', linestyle = "dotted", alpha = 0.5)
+ax2.plot(time, ct, label="LES CT", color='tab:blue', linestyle = "dotted", alpha = 0.5)
+ax2.set_ylim(0.0, 1.5)
 ax2.set_ylabel('ct')  # Label for right axis
 
 ax1.grid(True, alpha=0.3)  # Add grid to left axis
@@ -242,7 +304,7 @@ ax1.grid(True, alpha=0.3)  # Add grid to left axis
 # # Combine legends
 lines1, labels1 = ax1.get_legend_handles_labels()
 lines2, labels2 = ax2.get_legend_handles_labels()
-ax1.legend(lines1 + lines2, labels1 + labels2, loc='upper left')
+ax1.legend(lines1 + lines2, labels1 + labels2, loc='best')
 
 plt.show()
 
@@ -325,23 +387,32 @@ def get_oye(an_qs_arr, time, dt, an_for_tau = None):
 an_oye = get_oye(an_umm, time, dt)
 
 # %%
-fig, ax1 = plt.subplots()
+fig, ax1 = plt.subplots(dpi = 300)
+
+if normalize:
+    plot_an_les = an_les / ref_df["LES_an_ref"].item()
+    plot_an_umm = an_umm / ref_df["UMM_an_ref"].item()
+    plot_an_oye = an_oye / ref_df["UMM_an_ref"].item()
+else:
+    plot_an_les = an_les
+    plot_an_umm = an_umm
+    plot_an_oye = an_oye
 
 # Plot on left axis
-ax1.plot(time, x_act, label="x", color='tab:red')
-# ax1.plot(time, v_act, label="x", color='tab:orange')
-ax1.plot(time, an_les, label = "LES an", color="tab:orange")
-ax1.plot(time, an_umm, label = "UMM an", color="tab:orange", linestyle = "--")
-ax1.plot(time, an_oye, label = "Oye", color="tab:green")
-ax1.set_ylim(-0.1, 0.7)
-# ax1.set_xlim(85, 86)
+# ax1.plot(time, x_act, label="x", color='tab:red')
+ax1.plot(time, plot_an_les, label = "LES an", color="tab:orange")
+ax1.plot(time, plot_an_umm, label = "UMM an", color="tab:green", linestyle = "--")
+ax1.plot(time, plot_an_oye, label = "Oye", color="tab:green")
+ax1.set_ylim(0.0, 0.5)
+ax1.set_xlim(90, 95)
 ax1.set_ylabel('x, v, an')  # Label for left axis
 ax1.set_xlabel('time')
 
 # Create second y-axis and plot ct
 ax2 = ax1.twinx()
-ax2.plot(time, ct, label="ct", color='tab:blue')
-ax2.set_ylim(-0.1, 1.5)
+ax2.plot(time, 1 - v_act, label="LES Urel", color='tab:red', linestyle = "dotted", alpha = 0.5)
+ax2.plot(time, ct, label="LES CT", color='tab:blue', linestyle = "dotted", alpha = 0.5)
+ax2.set_ylim(0.0, 1.5)
 ax2.set_ylabel('ct')  # Label for right axis
 
 ax1.grid(True, alpha=0.3)  # Add grid to left axis
@@ -349,7 +420,7 @@ ax1.grid(True, alpha=0.3)  # Add grid to left axis
 # # Combine legends
 lines1, labels1 = ax1.get_legend_handles_labels()
 lines2, labels2 = ax2.get_legend_handles_labels()
-ax1.legend(lines1 + lines2, labels1 + labels2, loc='upper left')
+ax1.legend(lines1 + lines2, labels1 + labels2, loc='best')
 
 plt.show()
 

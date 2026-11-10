@@ -185,6 +185,7 @@ def load_simulation_timeseries(run_folder, id_str, freq, spinup_time=75):
 
     # phase (optional)
     phase_arr = np.asarray(log["phase"])
+    phase_bin_arr = np.asarray(log["phase_bin"])
     if phase_arr.size == 0:
         if freq > 0 and len(time) > 1:
             T = 1.0 / freq
@@ -197,6 +198,12 @@ def load_simulation_timeseries(run_folder, id_str, freq, spinup_time=75):
     else:
         phase = phase_arr[:n_dumped][mask]
 
+    if phase_bin_arr.size == 0:
+        phase_bin = np.zeros_like(time)
+    else:
+        phase_bin = phase_bin_arr[:n_dumped][mask]
+
+
     data = {
         "Time": time,
         "TIDX": tidx,
@@ -204,6 +211,7 @@ def load_simulation_timeseries(run_folder, id_str, freq, spinup_time=75):
         "UTurb": np.asarray(log["uturb"])[:n_dumped][mask],
         "DeltaX": np.asarray(log["delta"])[:n_dumped][mask],
         "Phase": phase,
+        "PhaseBin": phase_bin,
         "Power": np.asarray(power)[mask],
         "UDisk": np.asarray(uvel)[mask],
     }
@@ -211,18 +219,22 @@ def load_simulation_timeseries(run_folder, id_str, freq, spinup_time=75):
 
 
 def _parse_one_log(path):
+    terms = ["tilt", "uturb", "Time =", "TIDX", "delta",
+            "normalized turbine phase =", "Updating phase budget for phase ="]
     log = pio.query_logfile(
         path,
-        search_terms=["tilt", "uturb", "Time =", "TIDX", "delta", "phase"],
+        search_terms=terms,
         crop_equal=False,
     )
 
-    # always normalize key name
-    log["Time"] = log.pop("Time =")
-
-    for k in ["Time", "TIDX", "tilt", "uturb", "delta", "phase"]:
+    for k in terms:
         if k not in log:
             log[k] = np.array([])
+
+    # always normalize key name
+    log["Time"] = log.pop("Time =")
+    log["phase"] = log.pop("normalized turbine phase =")
+    log["phase_bin"] = log.pop("Updating phase budget for phase =")
 
     time = np.asarray(log["Time"]).astype(float)
     tidx = np.asarray(log["TIDX"]).astype(int)
@@ -234,6 +246,11 @@ def _parse_one_log(path):
     tidx = np.insert(tidx, 0, tidx[0] - 1)
     log["Time"] = time
     log["TIDX"] = tidx
+
+    phase_bin_arr = np.asarray(log["phase_bin"])
+    if phase_bin_arr.size != 0:
+        phase_bin_arr = np.insert(phase_bin_arr, 0, 0.0)
+        log["phase_bin"] = phase_bin_arr
 
     with open(path, "r", errors="ignore") as f:
         txt = f.read(20000)

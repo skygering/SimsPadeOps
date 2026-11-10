@@ -37,11 +37,9 @@ single_inputs = dict(
         CFL = -1,
         dt = dt,
         do_time_budgets = True,
-        time_budgetType = 0,
-        do_multi_phase_budgets = True,
+        time_budgetType = 1,
         phases = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9],
         phase_tol = 0.05,
-        tstop = 300,
     ),
     turb = dict(  # can only provide one turbine right now - update when needed
         # if not provided, default_inputs will be used
@@ -51,7 +49,6 @@ single_inputs = dict(
         cT = 2.00,
         useCorrection = True,
         filterWidth = filterWidth,
-
     ),
     run = dict(
         # always need to provide the filepaths (no defaults)
@@ -61,14 +58,16 @@ single_inputs = dict(
         # if not provided, default_inputs will be used
         build_folder = "build_opti_phase",
         queue = "spr",
-        n_hrs = 12,
+        n_hrs = 15,
     )
 )
 
-sa = [0.3]
-sf = [0.5] # switch back to 0.5
-varied_inputs = itertools.zip_longest(sa, sf)
-varied_header = ["surge_amplitude", "surge_freq"]
+sa = [0.3, 0.3, 0.0]
+sf = [1.0, 1.0, 1.0] # switch back to 0.5
+do_multi_phase_budgets = [True, True, False]
+tstop = [300, 400, 400]
+varied_inputs = itertools.zip_longest(sa, sf, do_multi_phase_budgets, tstop)
+varied_header = ["surge_amplitude", "surge_freq", "do_multi_phase_budgets", "tstop"]
 
 # for v in varied_inputs: 
 #     print(v)                                   
